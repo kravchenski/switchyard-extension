@@ -50,9 +50,13 @@ function showDescription() {
 
 function showResult(result: ToolResult) {
     output.classList.toggle('error', !!result.isError);
-    output.textContent = result.content
-        .map(part => part.type === 'text' ? part.text : `[${part.mimeType} image, ${part.data.length} chars base64]`)
-        .join('\n');
+    output.replaceChildren(...result.content.map((part) => {
+        if (part.type === 'text') return document.createTextNode(`${part.text}\n`);
+        const image = document.createElement('img');
+        image.src = `data:${part.mimeType};base64,${part.data}`;
+        image.alt = 'Screenshot';
+        return image;
+    }));
 }
 
 function answerConfirm(ok: boolean) {
