@@ -1,0 +1,22 @@
+{
+    "name": "switchyard-extension",
+    "version": "0.1.0",
+    "description": "Chrome extension that lets Switchyard models and coding agents drive the browser",
+    "author": "kravchenski",
+    "license": "MIT",
+    "private": true,
+    "type": "module",
+    "packageManager": "bun@1.4.2",
+    "scripts": {
+        "build": "bun run scripts/build.ts",
+        "dev": "bun run scripts/build.ts --watch",
+        "typecheck": "tsc --noEmit -p .",
+        "test": "bun test ./test",
+        "ci": "bun run typecheck && bun run test && bun run build"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "@types/chrome": "^0.1.0",
+        "typescript": "^7.0.2"
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Switchyard",
+  "description": "Let Switchyard models and coding agents work with your browser tabs.",
+  "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtZI53onQOz0nGj/SoMkWnxYaucN+si5Hpg/hOrDqUc5c/3pXOZXe0wtVeRV7clNHO4Zuyvh/Buvak1yChdC19zwIhPCM/MCXNgP87211PtVvpXBXNP1j4m4bikC5s8+jA2coz3i9nehNCcAQYCXQse9IgZNf00lsUP0HzRB2kxS9b4lN5KbIwxQj37si6Fxxu4eLiaEGXmik33Wwun6WP1Eyfq2vo/MXgipANuhOuEm3c6del13W/cNkKo4zdWTuYOokS9JCUe3UScWD78lpMPC5EGS4YlAMZOW5gZ24HxDtBEfJpA8xjRArSoKt0zc3bWRo484lGzAn9XzbEPq4uwIDAQAB",
+  "minimum_chrome_version": "116",
+  "permissions": ["tabs", "tabGroups", "sidePanel", "scripting", "debugger", "storage", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "options_page": "options.html",
+  "action": { "default_title": "Open Switchyard" }
+}

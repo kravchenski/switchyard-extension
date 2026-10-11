@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Switchyard</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+    <header>
+        <h1>Switchyard</h1>
+    </header>
+    <main>
+        <section class="tool-runner" aria-label="Run a tool">
+            <label for="tool">Tool</label>
+            <select id="tool"></select>
+            <p id="tool-description" class="hint"></p>
+            <label for="args">Arguments (JSON)</label>
+            <textarea id="args" rows="6" spellcheck="false">{}</textarea>
+            <button id="run" type="button">Run</button>
+        </section>
+        <section id="confirm" class="confirm" hidden>
+            <p id="confirm-text"></p>
+            <div class="actions">
+                <button id="confirm-allow" type="button">Allow</button>
+                <button id="confirm-deny" type="button" class="secondary">Deny</button>
+            </div>
+        </section>
+        <pre id="output" class="output" aria-live="polite"></pre>
+    </main>
+    <script type="module" src="sidepanel.js"></script>
+</body>
+</html>
