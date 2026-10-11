@@ -22,6 +22,18 @@
                 Ask before clicking or typing on a new site
             </label>
 
+            <h2>Coding agents (MCP)</h2>
+            <label class="check">
+                <input id="bridge-enabled" type="checkbox">
+                Let coding agents use the browser through Switchyard
+            </label>
+            <p class="hint">Add it to Claude Code with <code>claude mcp add --transport http switchyard-browser http://127.0.0.1:3260/mcp</code></p>
+            <label class="check">
+                <input id="bridge-auto-approve" type="checkbox">
+                Let agents act on new sites without asking when the side panel is closed
+            </label>
+            <p id="bridge-status" class="hint"></p>
+
             <div class="actions">
                 <button type="submit">Save</button>
                 <button id="test" type="button" class="secondary">Test connection</button>

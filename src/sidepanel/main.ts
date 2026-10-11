@@ -1,6 +1,6 @@
 import type { AgentEvent } from '../background/agent.ts';
 import type { ToolDefinition, ToolResult } from '../tools/registry.ts';
-import { PANEL_PORT, type BackgroundToPanel, type PanelToBackground } from '../shared/messages.ts';
+import { PANEL_PORT, type BackgroundToPanel, type BridgeStatus, type PanelToBackground } from '../shared/messages.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
 
 const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector)!;
@@ -19,6 +19,7 @@ const toolDescription = $<HTMLParagraphElement>('#tool-description');
 const argsInput = $<HTMLTextAreaElement>('#args');
 const runButton = $<HTMLButtonElement>('#run');
 const output = $<HTMLDivElement>('#output');
+const bridgeStatus = $<HTMLParagraphElement>('#bridge-status');
 
 let tools: ToolDefinition[] = [];
 let pendingConfirm: string | undefined;
@@ -70,6 +71,9 @@ function onMessage(message: BackgroundToPanel) {
         case 'models':
             showModels(message.models, message.error);
             break;
+        case 'bridge':
+            showBridge(message.status);
+            break;
     }
     empty.hidden = messages.childElementCount > 0;
 }
@@ -105,7 +109,7 @@ function render(event: AgentEvent) {
             const li = item('tool');
             const details = document.createElement('details');
             const summary = document.createElement('summary');
-            summary.textContent = `${event.name} …`;
+            summary.textContent = `${event.source === 'bridge' ? 'MCP · ' : ''}${event.name} …`;
             const args = document.createElement('pre');
             args.textContent = event.args;
             details.append(summary, args);
@@ -145,6 +149,14 @@ function showModels(models: string[], error?: string) {
     modelSelect.value = current;
     modelSelect.title = error ?? 'Model';
     if (error) item('error', error);
+}
+
+function showBridge(status: BridgeStatus) {
+    bridgeStatus.hidden = !status.enabled;
+    bridgeStatus.classList.toggle('connected', status.connected);
+    bridgeStatus.textContent = status.connected
+        ? 'Coding agents connected through Switchyard (MCP)'
+        : `MCP bridge offline${status.error ? `: ${status.error}` : ''}; retrying`;
 }
 
 function showToolDescription() {

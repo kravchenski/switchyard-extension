@@ -4,6 +4,10 @@ export interface Settings {
     model: string;
     /** Ask once per site before the agent clicks or types there. */
     askBeforeActing: boolean;
+    /** Keep a connection to Switchyard so coding agents can use the browser tools over MCP. */
+    bridgeEnabled: boolean;
+    /** Let agents act on new sites without asking when the side panel is closed. */
+    bridgeAutoApprove: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -11,6 +15,8 @@ export const DEFAULT_SETTINGS: Settings = {
     apiKey: '',
     model: 'agent',
     askBeforeActing: true,
+    bridgeEnabled: true,
+    bridgeAutoApprove: false,
 };
 
 export async function loadSettings(): Promise<Settings> {

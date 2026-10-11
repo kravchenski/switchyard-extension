@@ -33,6 +33,7 @@ h1 { margin: 0 0 20px; font-size: 20px; font-weight: 600; }
 
 form { display: grid; gap: 6px; }
 label { font-weight: 600; margin-top: 10px; }
+h2 { margin: 24px 0 0; font-size: 15px; font-weight: 600; }
 label.check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
 
 input[type="url"], input[type="password"] {
