@@ -14,6 +14,10 @@ export function addPanel(port: chrome.runtime.Port) {
     });
 }
 
+export function hasPanel() {
+    return ports.size > 0;
+}
+
 export function postToPanels(message: BackgroundToPanel) {
     for (const port of ports) port.postMessage(message);
 }

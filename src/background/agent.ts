@@ -7,7 +7,7 @@ const MAX_TOOL_TEXT = 40_000;
 export type AgentEvent =
     | { type: 'user'; text: string }
     | { type: 'assistant'; text: string }
-    | { type: 'tool-start'; id: string; name: string; args: string }
+    | { type: 'tool-start'; id: string; name: string; args: string; source?: 'bridge' }
     | { type: 'tool-end'; id: string; text: string; images: string[]; isError: boolean }
     | { type: 'error'; message: string }
     | { type: 'running'; running: boolean };
@@ -64,6 +64,11 @@ function resultText(result: ToolResult) {
 
 function resultImages(result: ToolResult) {
     return result.content.flatMap(part => part.type === 'image' ? [`data:${part.mimeType};base64,${part.data}`] : []);
+}
+
+/** The panel's view of a finished tool call. */
+export function toolEndEvent(id: string, result: ToolResult): AgentEvent {
+    return { type: 'tool-end', id, text: resultText(result), images: resultImages(result), isError: !!result.isError };
 }
 
 /** Keeps only the newest screenshots in history so the context does not fill up with images. */

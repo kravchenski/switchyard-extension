@@ -19,7 +19,17 @@ Click the toolbar icon to open the side panel and ask Switchyard to do something
 
 Start Switchyard (`bun run start` in the switchyard repo). The extension talks to `http://127.0.0.1:3260` with the model `agent` by default; change the address in **Settings** and the model in the panel header.
 
-Switchyard rejects requests from browser extensions unless it has an API key, so for now start it with `GATEWAY_API_KEY=<key>` and enter the same key in the extension's **Settings**. **Test connection** checks that it works.
+Switchyard trusts this extension's origin on `localhost` (`EXTENSION_ORIGINS`), so no key is needed. If Switchyard runs with `GATEWAY_API_KEY`, enter the same key in the extension's **Settings**. **Test connection** checks that it works.
+
+## Coding agents (MCP)
+
+The extension keeps a WebSocket open to Switchyard (`/browser/ws`) and sends it the tool list. Switchyard serves those tools over MCP at `/mcp`, so Claude Code, Codex and other MCP clients can drive the browser:
+
+```sh
+claude mcp add --transport http switchyard-browser http://127.0.0.1:3260/mcp
+```
+
+Tool calls from agents show up in the side panel chat marked `MCP`. Clicking or typing on a new site still needs approval: the side panel asks if it is open; otherwise the call fails with a message for the agent, unless **Let agents act on new sites without asking** is on in **Settings**. Turn the bridge off there to disconnect agents.
 
 ## Tools
 
