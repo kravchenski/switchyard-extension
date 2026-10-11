@@ -13,7 +13,13 @@ bun run ci         # typecheck + tests + build
 
 Load it in Chrome: open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and pick `dist/`. The manifest `key` pins the extension id to `dammhajbcgfiiaokdhfchhncfaknaemj`.
 
-Click the toolbar icon to open the side panel. For now it runs a single tool by hand: pick a tool, enter JSON arguments, press **Run**.
+Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat, and **Run a tool manually** at the bottom runs a single tool by hand.
+
+## Connecting to Switchyard
+
+Start Switchyard (`bun run start` in the switchyard repo). The extension talks to `http://127.0.0.1:3260` with the model `agent` by default; change the address in **Settings** and the model in the panel header.
+
+Switchyard rejects requests from browser extensions unless it has an API key, so for now start it with `GATEWAY_API_KEY=<key>` and enter the same key in the extension's **Settings**. **Test connection** checks that it works.
 
 ## Tools
 

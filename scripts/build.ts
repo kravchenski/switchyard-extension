@@ -2,19 +2,21 @@ import { cp, rm } from 'node:fs/promises';
 import { watch } from 'node:fs';
 
 const OUT_DIR = 'dist';
-const ENTRYPOINTS = ['src/background/index.ts', 'src/sidepanel/main.ts'];
-const OUTPUT_NAMES: Record<string, string> = { index: 'background', main: 'sidepanel' };
+const ENTRYPOINTS: Record<string, string> = {
+    background: 'src/background/index.ts',
+    sidepanel: 'src/sidepanel/main.ts',
+    options: 'src/options/main.ts',
+};
 
 async function build() {
     await rm(OUT_DIR, { recursive: true, force: true });
-    for (const entry of ENTRYPOINTS) {
-        const name = entry.split('/').pop()!.replace(/\.ts$/, '');
+    for (const [name, entry] of Object.entries(ENTRYPOINTS)) {
         const result = await Bun.build({
             entrypoints: [entry],
             outdir: OUT_DIR,
             target: 'browser',
             format: 'esm',
-            naming: `${OUTPUT_NAMES[name] ?? name}.js`,
+            naming: `${name}.js`,
             sourcemap: 'linked',
         });
         if (!result.success) {
