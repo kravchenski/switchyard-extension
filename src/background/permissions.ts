@@ -1,4 +1,5 @@
 import { ToolError, type ToolContext } from '../tools/registry.ts';
+import { loadSettings } from '../shared/settings.ts';
 import { originOf } from './session.ts';
 
 const STORAGE_KEY = 'approvedOrigins';
@@ -12,6 +13,7 @@ async function approvedOrigins() {
 export async function ensureSiteAllowed(tab: chrome.tabs.Tab, tool: string, summary: string, context: ToolContext) {
     const origin = originOf(tab.url);
     if (!origin) throw new ToolError('This tab has no url to act on');
+    if (!(await loadSettings()).askBeforeActing) return;
     const approved = await approvedOrigins();
     if (approved.includes(origin)) return;
     const ok = await context.confirm({ tool, summary: `${summary} on ${origin}. Allow Switchyard to act on this site?`, origin });
