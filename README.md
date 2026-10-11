@@ -29,3 +29,12 @@ Click the toolbar icon to open the side panel. For now it runs a single tool by 
 | `group_update` | Rename, recolor, collapse a group |
 | `tab_move_to_group` | Add tabs to a group |
 | `ungroup` | Remove tabs from their group |
+
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`) runs on every push to `master` and on pull requests: typecheck, tests and build. The built `dist/` is uploaded as a workflow artifact.
+- **Release** (`.github/workflows/release.yml`) runs when a `v*` tag is pushed. It checks that the tag matches the version in `package.json` and `static/manifest.json`, builds, zips `dist/` and attaches the zip to a GitHub release.
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```

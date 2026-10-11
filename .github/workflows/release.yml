@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check tag matches versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          package=$(jq -r .version package.json)
+          manifest=$(jq -r .version static/manifest.json)
+          if [ "$tag" != "$package" ] || [ "$tag" != "$manifest" ]; then
+            echo "Tag $tag does not match package.json $package and manifest.json $manifest" >&2
+            exit 1
+          fi
+
+      - name: Typecheck, test and build
+        run: bun run ci
+
+      - name: Package extension
+        run: |
+          rm -f dist/*.map
+          cd dist && zip -r "../switchyard-extension-${GITHUB_REF_NAME}.zip" .
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "switchyard-extension-${GITHUB_REF_NAME}.zip" --title "$GITHUB_REF_NAME" --generate-notes
