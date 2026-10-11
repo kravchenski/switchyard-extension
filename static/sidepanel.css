@@ -76,3 +76,4 @@ button:disabled { opacity: 0.5; cursor: default; }
     min-height: 3em;
 }
 .output.error { color: var(--danger); }
+.output img { display: block; max-width: 100%; margin-top: 8px; border-radius: 4px; }

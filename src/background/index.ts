@@ -1,10 +1,13 @@
 import { GROUP_TOOLS } from '../tools/groups.ts';
+import { INPUT_TOOLS } from '../tools/input.ts';
+import { PAGE_TOOLS } from '../tools/page.ts';
 import { ToolRegistry, type ToolContext } from '../tools/registry.ts';
+import { SCREENSHOT_TOOLS } from '../tools/screenshot.ts';
 import { TAB_TOOLS } from '../tools/tabs.ts';
 import { PANEL_PORT, type PanelToBackground } from '../shared/messages.ts';
 import { addPanel, confirmInPanel, resolveConfirm } from './panel.ts';
 
-export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS);
+export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, ...SCREENSHOT_TOOLS);
 
 const panelContext: ToolContext = { source: 'panel', confirm: confirmInPanel };
 

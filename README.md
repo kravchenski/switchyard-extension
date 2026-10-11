@@ -1,6 +1,6 @@
 # switchyard-extension
 
-Chrome extension that lets [Switchyard](https://github.com/kravchenski/switchyard) models and coding agents work with your browser: tabs, tab groups, navigation, and (in later stages) reading and acting on pages.
+Chrome extension that lets [Switchyard](https://github.com/kravchenski/switchyard) models and coding agents work with your browser: tabs, tab groups, navigation, and (in later stages) reading pages, clicking and typing.
 
 ## Development
 
@@ -29,6 +29,18 @@ Click the toolbar icon to open the side panel. For now it runs a single tool by 
 | `group_update` | Rename, recolor, collapse a group |
 | `tab_move_to_group` | Add tabs to a group |
 | `ungroup` | Remove tabs from their group |
+| `read_page` | Page outline with element refs (`ref_12`) for click and type |
+| `find` | Find visible elements by label, text or placeholder |
+| `get_page_text` | Visible text of the page |
+| `click` | Click a ref or a viewport point |
+| `type` | Type into a ref or the focused element |
+| `key` | Press keys and shortcuts, e.g. `Control+a Delete` |
+| `scroll` | Scroll the page or the area under a ref |
+| `hover` | Move the mouse over a ref or point |
+| `screenshot` | Capture the visible tab as an image in CSS pixels |
+| `wait` | Wait a number of milliseconds |
+
+`click`, `type` and `key` ask once per site per browser session before acting. They use `chrome.debugger`, so Chrome shows a "started debugging this browser" bar while the agent is working; it detaches after 30 seconds of inactivity.
 
 ## CI/CD
 
