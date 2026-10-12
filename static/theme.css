@@ -68,15 +68,17 @@ button:disabled { opacity: 0.45; cursor: default; }
 .button.outline { border-color: var(--border); background: var(--surface); color: var(--text); }
 
 .chip {
-    padding: 1px 8px;
-    border-radius: 6px;
-    background: var(--neutral-soft);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--muted);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
     white-space: nowrap;
 }
-.chip.ok { background: var(--primary-soft); color: var(--success-text); }
-.chip.error { background: var(--danger-soft); color: var(--danger-text); }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--switch-off); }
+.chip.ok::before { background: var(--primary); }
+.chip.error::before { background: var(--danger-text); }
+.chip:empty { display: none; }
 
 code { padding: 1px 5px; border-radius: 6px; background: var(--neutral-soft); font: 12px/1.5 ui-monospace, monospace; word-break: break-all; }
