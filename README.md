@@ -56,6 +56,8 @@ Tool calls from agents show up in the side panel chat marked `MCP`. Clicking or 
 | `screenshot` | Capture the visible tab as an image in CSS pixels |
 | `wait` | Wait a number of milliseconds |
 
+While an agent works, the tab it acts in joins the green **Switchyard** tab group (unless it is already in one of your groups), gets a green frame and a status bar at the bottom, and a cursor glides to each point before a click. Stop in that bar stops the side panel agent; for coding agents the frame goes away after 15 seconds without calls. The overlay is hidden while screenshots are taken.
+
 `click`, `type` and `key` ask once per site per browser session before acting. They use `chrome.debugger`, so Chrome shows a "started debugging this browser" bar while the agent is working; it detaches after 30 seconds of inactivity.
 
 ## CI/CD

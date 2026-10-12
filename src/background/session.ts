@@ -1,7 +1,8 @@
-import { ToolError } from '../tools/registry.ts';
+import { ToolError, type ToolContext } from '../tools/registry.ts';
+import { markActive } from './presence.ts';
 
 export const SESSION_GROUP_TITLE = 'Switchyard';
-const SESSION_GROUP_COLOR = 'purple';
+const SESSION_GROUP_COLOR = 'green';
 const LOAD_TIMEOUT_MS = 20_000;
 
 interface SessionState {
@@ -43,6 +44,20 @@ export async function resolveTab(tabId?: number): Promise<chrome.tabs.Tab & { id
     const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (active?.id === undefined) throw new ToolError('No active tab');
     return active as chrome.tabs.Tab & { id: number };
+}
+
+/**
+ * The tab a page tool acts in. Like Claude in Chrome, a tab outside any group joins the Switchyard group
+ * the first time an agent works in it; tabs in the user's own groups stay where they are.
+ */
+export async function workTab(tabId: number | undefined, context: Pick<ToolContext, 'source'>) {
+    const tab = await resolveTab(tabId);
+    if (tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE && isScriptable(tab.url)) {
+        await addToSessionGroup([tab.id]).catch(console.error);
+    }
+    await setCurrentTab(tab.id);
+    await markActive(tab, context.source);
+    return tab;
 }
 
 export async function sessionGroupId() {
