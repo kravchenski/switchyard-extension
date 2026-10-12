@@ -13,7 +13,9 @@ bun run ci         # typecheck + tests + build
 
 Load it in Chrome: open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and pick `dist/`. The manifest `key` pins the extension id to `dammhajbcgfiiaokdhfchhncfaknaemj`.
 
-Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat.
+Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat, and answers render as Markdown.
+
+Attach files with the paperclip, by pasting or by dropping them on the panel (up to 5, 10 MB each). Text files and images go to the model with your message; other files, such as a PDF CV, are listed for `upload_file`, which puts them into a file field on the page. When the agent needs something only you know, it asks with `ask_user`: pick an option with a click or a number key, or type your own answer.
 
 ## Connecting to Switchyard
 
@@ -53,6 +55,8 @@ Tool calls from agents show up in the side panel chat marked `MCP`. Clicking or 
 | `key` | Press keys and shortcuts, e.g. `Control+a Delete` |
 | `scroll` | Scroll the page or the area under a ref |
 | `hover` | Move the mouse over a ref or point |
+| `upload_file` | Put an attached file into a file input, upload button or drop zone |
+| `ask_user` | Ask you a question with options in the side panel (not offered to coding agents) |
 | `screenshot` | Capture the visible tab as an image in CSS pixels |
 | `wait` | Wait a number of milliseconds |
 

@@ -1,6 +1,8 @@
 import type { AgentEvent } from '../background/agent.ts';
 import { PANEL_PORT, type BackgroundToPanel, type BridgeStatus, type PanelToBackground } from '../shared/messages.ts';
+import { formatSize, MAX_ATTACHMENT_BYTES, type Attachment } from '../shared/attachments.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
+import { renderMarkdown } from './markdown.ts';
 
 const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector)!;
 
@@ -17,12 +19,21 @@ const stopButton = $<HTMLButtonElement>('#stop');
 const confirmBox = $<HTMLElement>('#confirm');
 const confirmText = $<HTMLParagraphElement>('#confirm-text');
 const bridgeStatus = $<HTMLSpanElement>('#bridge-status');
+const fileList = $<HTMLUListElement>('#files');
+const fileInput = $<HTMLInputElement>('#file-input');
+
+const MAX_FILES = 5;
+const PROMPT_PLACEHOLDER = prompt.placeholder;
 
 const CHECK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
 let pendingConfirm: string | undefined;
 let lastAssistant: HTMLLIElement | undefined;
 let running = false;
+let attachments: Attachment[] = [];
+const rawText = new WeakMap<HTMLElement, string>();
+const questions = new Map<string, HTMLLIElement>();
+let pendingQuestion: string | undefined;
 const thinking = document.createElement('li');
 thinking.className = 'thinking';
 thinking.setAttribute('aria-label', 'Working');
@@ -58,6 +69,8 @@ function onMessage(message: BackgroundToPanel) {
         case 'transcript':
             messages.replaceChildren();
             toolItems.clear();
+            questions.clear();
+            pendingQuestion = undefined;
             lastAssistant = undefined;
             for (const event of message.events) render(event);
             setRunning(message.running);
@@ -82,7 +95,7 @@ function onMessage(message: BackgroundToPanel) {
 function showThinking() {
     thinking.remove();
     const last = messages.lastElementChild;
-    if (running && !last?.classList.contains('assistant')) messages.append(thinking);
+    if (running && !pendingQuestion && !last?.classList.contains('assistant')) messages.append(thinking);
 }
 
 function item(className: string, text = '') {
@@ -106,13 +119,33 @@ function render(event: AgentEvent) {
     thinking.remove();
     if (event.type !== 'assistant') lastAssistant = undefined;
     switch (event.type) {
-        case 'user':
+        case 'user': {
+            const li = item('user', event.text);
+            if (event.files?.length) li.append(fileChips(event.files.map(name => ({ name }))));
+            break;
+        }
+        case 'assistant': {
+            lastAssistant ??= item('assistant markdown');
+            const text = (rawText.get(lastAssistant) ?? '') + event.text;
+            rawText.set(lastAssistant, text);
+            renderMarkdown(lastAssistant, text);
+            break;
+        }
+        case 'question':
+            renderQuestion(event);
+            break;
+        case 'answer': {
+            const question = questions.get(event.id);
+            question?.classList.add('answered');
+            const picked = event.text.split(', ');
+            for (const button of question?.querySelectorAll<HTMLButtonElement>('button') ?? []) {
+                button.disabled = true;
+                if (button.classList.contains('option') && picked.includes(button.lastElementChild!.textContent!)) button.classList.add('picked');
+            }
+            if (pendingQuestion === event.id) setPendingQuestion(undefined);
             item('user', event.text);
             break;
-        case 'assistant':
-            lastAssistant ??= item('assistant');
-            lastAssistant.textContent += event.text;
-            break;
+        }
         case 'tool-start': {
             const li = item('tool');
             const details = document.createElement('details');
@@ -150,10 +183,128 @@ function render(event: AgentEvent) {
 
 function setRunning(next: boolean) {
     running = next;
-    sendButton.hidden = running;
-    stopButton.hidden = !running;
-    prompt.disabled = running;
-    if (!running) prompt.focus();
+    if (!running) setPendingQuestion(undefined);
+    updateComposer();
+}
+
+function updateComposer() {
+    const answering = pendingQuestion !== undefined;
+    sendButton.hidden = running && !answering;
+    stopButton.hidden = !running || answering;
+    prompt.disabled = running && !answering;
+    prompt.placeholder = answering ? 'Type your own answer, or press 1-9 to pick an option' : PROMPT_PLACEHOLDER;
+    $<HTMLButtonElement>('#attach').disabled = running;
+    if (!prompt.disabled) prompt.focus();
+}
+
+function setPendingQuestion(id: string | undefined) {
+    pendingQuestion = id;
+    updateComposer();
+}
+
+function answer(id: string, text: string) {
+    if (pendingQuestion !== id || !text.trim()) return;
+    send({ type: 'answer', id, text: text.trim() });
+}
+
+/** A question from ask_user, with its options as buttons, like Claude Code asks. */
+function renderQuestion(event: Extract<AgentEvent, { type: 'question' }>) {
+    const li = item('question');
+    const text = document.createElement('div');
+    text.className = 'markdown question-text';
+    renderMarkdown(text, event.question);
+    const options = document.createElement('div');
+    options.className = 'options';
+    const chosen = new Set<string>();
+    const submit = document.createElement('button');
+    event.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'option';
+        const number = document.createElement('span');
+        number.className = 'option-number';
+        number.textContent = String(index + 1);
+        const label = document.createElement('span');
+        label.textContent = option;
+        button.append(number, label);
+        button.addEventListener('click', () => {
+            if (!event.multiSelect) return answer(event.id, option);
+            if (chosen.has(option)) chosen.delete(option);
+            else chosen.add(option);
+            button.setAttribute('aria-pressed', String(chosen.has(option)));
+            submit.disabled = !chosen.size;
+        });
+        if (event.multiSelect) button.setAttribute('aria-pressed', 'false');
+        options.append(button);
+    });
+    li.append(text, options);
+    if (event.multiSelect && event.options.length) {
+        submit.type = 'button';
+        submit.className = 'button';
+        submit.textContent = 'Send';
+        submit.disabled = true;
+        submit.addEventListener('click', () => answer(event.id, [...chosen].join(', ')));
+        li.append(submit);
+    }
+    questions.set(event.id, li);
+    setPendingQuestion(event.id);
+}
+
+function fileChips(files: { name: string; size?: number }[], remove?: (index: number) => void) {
+    const list = document.createElement('ul');
+    list.className = 'files';
+    files.forEach((file, index) => {
+        const chip = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = file.name;
+        chip.append(name);
+        if (file.size !== undefined) {
+            const size = document.createElement('span');
+            size.className = 'file-size';
+            size.textContent = formatSize(file.size);
+            chip.append(size);
+        }
+        if (remove) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'file-remove';
+            button.textContent = '×';
+            button.setAttribute('aria-label', `Remove ${file.name}`);
+            button.addEventListener('click', () => remove(index));
+            chip.append(button);
+        }
+        list.append(chip);
+    });
+    return list;
+}
+
+function showAttachments() {
+    fileList.replaceChildren(...fileChips(attachments, (index) => {
+        attachments.splice(index, 1);
+        showAttachments();
+    }).children);
+    fileList.hidden = !attachments.length;
+}
+
+function readFile(file: File) {
+    return new Promise<Attachment>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ name: file.name, mimeType: file.type, size: file.size, data: String(reader.result).split(',')[1] ?? '' });
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
+
+async function attach(files: FileList | File[]) {
+    for (const file of files) {
+        if (attachments.length >= MAX_FILES) break;
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+            item('error', `${file.name} is larger than ${formatSize(MAX_ATTACHMENT_BYTES)}.`);
+            continue;
+        }
+        attachments = [...attachments.filter(existing => existing.name !== file.name), await readFile(file)];
+    }
+    showAttachments();
 }
 
 function showModels(next: string[], error?: string) {
@@ -235,10 +386,17 @@ function answerConfirm(ok: boolean) {
 composer.addEventListener('submit', (event) => {
     event.preventDefault();
     const text = prompt.value.trim();
-    if (!text) return;
+    if (pendingQuestion) {
+        if (!text) return;
+        answer(pendingQuestion, text);
+    } else {
+        if (!text && !attachments.length) return;
+        send({ type: 'chat', text: text || 'See the attached files.', attachments });
+        attachments = [];
+        showAttachments();
+    }
     prompt.value = '';
     fitPrompt();
-    send({ type: 'chat', text });
 });
 
 function fitPrompt() {
@@ -249,6 +407,15 @@ function fitPrompt() {
 prompt.addEventListener('input', fitPrompt);
 
 prompt.addEventListener('keydown', (event) => {
+    const question = pendingQuestion && questions.get(pendingQuestion);
+    if (question && !prompt.value && /^[1-9]$/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        const option = question.querySelectorAll<HTMLButtonElement>('.option')[Number(event.key) - 1];
+        if (option) {
+            event.preventDefault();
+            option.click();
+            return;
+        }
+    }
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         composer.requestSubmit();
@@ -256,6 +423,23 @@ prompt.addEventListener('keydown', (event) => {
 });
 
 stopButton.addEventListener('click', () => send({ type: 'stop' }));
+$('#attach').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+    void attach(fileInput.files ?? []);
+    fileInput.value = '';
+});
+prompt.addEventListener('paste', (event) => {
+    const files = event.clipboardData?.files;
+    if (files?.length && !running) {
+        event.preventDefault();
+        void attach(files);
+    }
+});
+document.addEventListener('dragover', event => event.preventDefault());
+document.addEventListener('drop', (event) => {
+    event.preventDefault();
+    if (event.dataTransfer?.files.length && !running) void attach(event.dataTransfer.files);
+});
 $('#new-chat').addEventListener('click', () => send({ type: 'reset' }));
 $('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
 $('#confirm-allow').addEventListener('click', () => answerConfirm(true));

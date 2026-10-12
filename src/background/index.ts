@@ -1,21 +1,41 @@
+import { askUser } from '../tools/ask.ts';
+import { uploadFile } from '../tools/files.ts';
 import { GROUP_TOOLS } from '../tools/groups.ts';
 import { INPUT_TOOLS } from '../tools/input.ts';
 import { PAGE_TOOLS } from '../tools/page.ts';
-import { ToolError, ToolRegistry, type ConfirmRequest, type ToolContext } from '../tools/registry.ts';
+import { ToolError, ToolRegistry, type AskRequest, type ConfirmRequest, type ToolContext } from '../tools/registry.ts';
 import { SCREENSHOT_TOOLS } from '../tools/screenshot.ts';
 import { TAB_TOOLS } from '../tools/tabs.ts';
 import { PANEL_PORT, type BridgeStatus, type PanelToBackground } from '../shared/messages.ts';
 import { DEFAULT_SETTINGS, loadSettings, type Settings } from '../shared/settings.ts';
 import { Agent, toolEndEvent, type AgentEvent } from './agent.ts';
+import { addAttachments, attachmentNames, clearAttachments } from './attachments.ts';
 import { BridgeClient } from './bridge.ts';
 import { chatStream, listModels } from './gateway.ts';
 import { addPanel, confirmInPanel, hasPanel, postToPanels, resolveConfirm } from './panel.ts';
 import { setPanelRunning } from './presence.ts';
 import { adoptActiveTab, resolveTab, sessionGroupId } from './session.ts';
 
-export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, ...SCREENSHOT_TOOLS);
+export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, uploadFile, ...SCREENSHOT_TOOLS, askUser);
 
-const panelContext: ToolContext = { source: 'panel', confirm: confirmInPanel };
+const pendingAnswers = new Map<string, (text: string) => void>();
+
+/** Shows the question in the chat and waits for the user to pick an option or type an answer. */
+async function askInPanel(request: AskRequest, signal?: AbortSignal) {
+    const id = crypto.randomUUID();
+    record({ type: 'question', id, question: request.question, options: request.options ?? [], multiSelect: !!request.multiSelect });
+    const answer = await new Promise<string>((resolve, reject) => {
+        pendingAnswers.set(id, resolve);
+        signal?.addEventListener('abort', () => {
+            pendingAnswers.delete(id);
+            reject(new ToolError('Stopped before the user answered'));
+        }, { once: true });
+    });
+    record({ type: 'answer', id, text: answer });
+    return answer;
+}
+
+const panelContext: ToolContext = { source: 'panel', confirm: confirmInPanel, ask: askInPanel };
 
 /** Coding agents get the panel's prompt when it is open; otherwise the bridge auto-approve setting decides. */
 async function confirmForBridge(request: ConfirmRequest) {
@@ -37,7 +57,11 @@ function record(event: AgentEvent) {
 
 const bridge = new BridgeClient({
     version: chrome.runtime.getManifest().version,
-    tools,
+    // Coding agents ask their user in their own chat, so they do not get ask_user.
+    tools: {
+        definitions: () => tools.definitions().filter(tool => tool.name !== askUser.name),
+        call: (name, args, context) => tools.call(name, args, context),
+    },
     context: { source: 'bridge', confirm: confirmForBridge },
     onStatus: (status: BridgeStatus) => postToPanels({ type: 'bridge', status }),
     onCallStart: (id, name, args) => record({ type: 'tool-start', id: `bridge-${id}`, name, args: JSON.stringify(args), source: 'bridge' }),
@@ -68,6 +92,7 @@ async function describeEnvironment() {
     return [
         `Current tab: ${tab ? `${tab.id} "${tab.title ?? ''}" ${tab.url ?? ''}` : 'none'}`,
         `Switchyard tab group: ${groupId ?? 'not created yet'}`,
+        `Attached files: ${attachmentNames().join(', ') || 'none'}`,
         `Date: ${new Date().toString()}`,
     ].join('\n');
 }
@@ -123,13 +148,19 @@ chrome.runtime.onConnect.addListener((port) => {
             case 'chat':
                 if (agent.running) break;
                 if (!transcript.length) await adoptActiveTab().catch(console.error);
-                await agent.send(message.text);
+                addAttachments(message.attachments ?? []);
+                await agent.send(message.text, message.attachments);
+                break;
+            case 'answer':
+                pendingAnswers.get(message.id)?.(message.text);
+                pendingAnswers.delete(message.id);
                 break;
             case 'stop':
                 agent.stop();
                 break;
             case 'reset':
                 agent.reset();
+                clearAttachments();
                 transcript.length = 0;
                 postToPanels({ type: 'transcript', events: transcript, running: false });
                 break;
