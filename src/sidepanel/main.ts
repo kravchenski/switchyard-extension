@@ -22,6 +22,11 @@ const CHECK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9
 
 let pendingConfirm: string | undefined;
 let lastAssistant: HTMLLIElement | undefined;
+let running = false;
+const thinking = document.createElement('li');
+thinking.className = 'thinking';
+thinking.setAttribute('aria-label', 'Working');
+thinking.append(...[0, 1, 2].map(() => document.createElement('span')));
 let model = '';
 let models: string[] = [];
 let modelsError: string | undefined;
@@ -66,7 +71,16 @@ function onMessage(message: BackgroundToPanel) {
             showBridge(message.status);
             break;
     }
+    showThinking();
     empty.hidden = messages.childElementCount > 0;
+}
+
+/** Three dots at the end of the chat while the agent works and no answer text is streaming yet. */
+function showThinking() {
+    thinking.remove();
+    const last = messages.lastElementChild;
+    if (running && !last?.classList.contains('assistant')) messages.append(thinking);
+    scroller.scrollTop = scroller.scrollHeight;
 }
 
 function item(className: string, text = '') {
@@ -87,6 +101,7 @@ function images(urls: string[]) {
 }
 
 function render(event: AgentEvent) {
+    thinking.remove();
     if (event.type !== 'assistant') lastAssistant = undefined;
     switch (event.type) {
         case 'user':
@@ -132,7 +147,8 @@ function render(event: AgentEvent) {
     scroller.scrollTop = scroller.scrollHeight;
 }
 
-function setRunning(running: boolean) {
+function setRunning(next: boolean) {
+    running = next;
     sendButton.hidden = running;
     stopButton.hidden = !running;
     prompt.disabled = running;
