@@ -54,6 +54,92 @@ main:has(.empty:not([hidden])) { align-content: center; }
     border-radius: 12px;
     background: var(--neutral-soft);
 }
+.messages .assistant { white-space: normal; }
+
+/* Markdown in answers and questions */
+
+.markdown > :first-child { margin-top: 0; }
+.markdown > :last-child { margin-bottom: 0; }
+.markdown p, .markdown ul, .markdown ol, .markdown pre, .markdown blockquote, .markdown .table { margin: 0 0 8px; }
+.markdown h3, .markdown h4, .markdown h5, .markdown h6 { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
+.markdown h3 { font-size: 15px; }
+.markdown ul, .markdown ol { padding-left: 20px; }
+.markdown li { margin: 2px 0; }
+.markdown li::marker { color: var(--muted); }
+.markdown li > ul, .markdown li > ol { margin: 2px 0 0; }
+.markdown strong { font-weight: 600; }
+.markdown a { color: var(--primary); }
+.markdown code { font-size: 12px; }
+.markdown pre { padding: 8px 10px; border-radius: 8px; background: var(--neutral-soft); overflow-x: auto; }
+.markdown pre code { padding: 0; background: none; white-space: pre; }
+.markdown blockquote { padding-left: 10px; border-left: 2px solid var(--border); color: var(--muted); }
+.markdown hr { margin: 12px 0; border: 0; border-top: 1px solid var(--border); }
+.markdown .table { overflow-x: auto; }
+.markdown table { border-collapse: collapse; font-size: 12px; }
+.markdown th, .markdown td { padding: 4px 8px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+.markdown th { font-weight: 600; background: var(--neutral-soft); }
+
+/* Questions from ask_user */
+
+.messages .question { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; white-space: normal; }
+.question-text { font-weight: 500; }
+.options { display: grid; gap: 4px; }
+.option {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    text-align: left;
+}
+.option:hover:not(:disabled), .option[aria-pressed="true"] { border-color: var(--primary); }
+.option[aria-pressed="true"] .option-number { color: var(--primary); }
+.option-number { min-width: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.question .button { justify-self: end; }
+.question.answered { color: var(--muted); }
+.question.answered .option.picked { border-color: var(--primary); color: var(--text); }
+.question.answered .option:disabled { opacity: 1; cursor: default; }
+
+/* Files the agent created */
+
+.messages .file-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    white-space: normal;
+}
+.file-card div { display: grid; min-width: 0; }
+.file-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.file-card span { color: var(--muted); font-size: 12px; }
+.file-card .button { flex: none; text-decoration: none; }
+
+/* Attached files */
+
+.files { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.files li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 4px 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    font-size: 12px;
+}
+.files li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: var(--muted); }
+.file-remove { padding: 0 4px; border: 0; background: none; color: var(--muted); font-size: 14px; line-height: 1; }
+.file-remove:hover { color: var(--text); }
+.messages .user .files { margin-top: 6px; }
+.messages .user .files li { padding-right: 8px; }
+
 .messages .thinking { display: flex; gap: 4px; padding: 6px 2px; }
 .thinking span { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: thinking 1.2s ease-in-out infinite; }
 .thinking span:nth-child(2) { animation-delay: 0.15s; }
@@ -172,14 +258,13 @@ main:has(.empty:not([hidden])) { align-content: center; }
 .round-button {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: var(--primary);
-    color: var(--on-primary);
+    border-radius: 8px;
+    background: var(--text);
+    color: var(--surface);
 }
-.round-button:hover:not(:disabled) { opacity: 0.85; }
-.round-button.stop { background: var(--text); color: var(--surface); }
+.round-button:disabled { background: var(--hover); color: var(--muted); opacity: 1; }
 .round-button.stop svg { fill: currentColor; stroke: none; }

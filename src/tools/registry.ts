@@ -26,6 +26,14 @@ export interface ToolContext {
     signal?: AbortSignal;
     /** Asks the user before a sensitive action; resolves false when declined. */
     confirm(request: ConfirmRequest): Promise<boolean>;
+    /** Asks the user a question in the side panel; only the panel agent has it. */
+    ask?(request: AskRequest, signal?: AbortSignal): Promise<string>;
+}
+
+export interface AskRequest {
+    question: string;
+    options?: string[];
+    multiSelect?: boolean;
 }
 
 export interface ConfirmRequest {

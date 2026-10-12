@@ -64,10 +64,12 @@ export async function withoutOverlay<T>(tab: Tab, capture: () => Promise<T>) {
     }
 }
 
-// A navigation wipes the overlay, so it is drawn again once the new page has loaded.
-chrome.tabs.onUpdated.addListener((tabId, info) => {
-    if (tabId === shownTabId && info.status === 'complete') void show(tabId);
-});
-chrome.tabs.onRemoved.addListener((tabId) => {
-    if (tabId === shownTabId) shownTabId = undefined;
-});
+/** Called once by the service worker: a navigation wipes the overlay, so it is drawn again on load. */
+export function watchTabs() {
+    chrome.tabs.onUpdated.addListener((tabId, info) => {
+        if (tabId === shownTabId && info.status === 'complete') void show(tabId);
+    });
+    chrome.tabs.onRemoved.addListener((tabId) => {
+        if (tabId === shownTabId) shownTabId = undefined;
+    });
+}

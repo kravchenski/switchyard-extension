@@ -67,18 +67,8 @@ button:disabled { opacity: 0.45; cursor: default; }
 .button:hover:not(:disabled) { opacity: 0.85; }
 .button.outline { border-color: var(--border); background: var(--surface); color: var(--text); }
 
-.chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-}
-.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--switch-off); }
-.chip.ok::before { background: var(--primary); }
-.chip.error::before { background: var(--danger-text); }
+.chip { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.chip.error { color: var(--danger-text); }
 .chip:empty { display: none; }
 
 code { padding: 1px 5px; border-radius: 6px; background: var(--neutral-soft); font: 12px/1.5 ui-monospace, monospace; word-break: break-all; }

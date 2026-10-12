@@ -108,7 +108,7 @@ describe('Agent', () => {
         expect(imageMessages).toHaveLength(2);
         expect(imageMessages[0]!.content).toEqual([
             { type: 'text', text: 'Screenshot from the last tool call:' },
-            { type: 'text', text: '[earlier screenshot removed]' },
+            { type: 'text', text: '[earlier image removed]' },
         ]);
         expect(imageMessages[1]!.content).toEqual([
             { type: 'text', text: 'Screenshot from the last tool call:' },

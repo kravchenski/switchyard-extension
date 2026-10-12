@@ -1,11 +1,13 @@
 import type { AgentEvent } from '../background/agent.ts';
 import type { ConfirmRequest } from '../tools/registry.ts';
+import type { Attachment } from './attachments.ts';
 
 export const PANEL_PORT = 'panel';
 
 export type PanelToBackground =
     | { type: 'confirm-reply'; id: string; ok: boolean }
-    | { type: 'chat'; text: string }
+    | { type: 'chat'; text: string; attachments?: Attachment[] }
+    | { type: 'answer'; id: string; text: string }
     | { type: 'stop' }
     | { type: 'reset' }
     | { type: 'list-models' };

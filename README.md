@@ -13,7 +13,15 @@ bun run ci         # typecheck + tests + build
 
 Load it in Chrome: open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and pick `dist/`. The manifest `key` pins the extension id to `dammhajbcgfiiaokdhfchhncfaknaemj`.
 
-Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat.
+Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat, and answers render as Markdown.
+
+Attach files with the paperclip, by pasting or by dropping them on the panel (up to 5, 10 MB each). Text files and images go to the model with your message; other files, such as a PDF CV, are listed for `upload_file`, which puts them into a file field on the page. The agent can also make files with `create_file`, such as a cover letter or a CSV. They stay in the extension's memory for the conversation (up to 2 MB each); nothing is written to disk unless you click **Download** on the file in the chat, and uploading one to a site still asks for that site first. When the agent needs something only you know, it asks with `ask_user`: pick an option with a click or a number key, or type your own answer.
+
+### Skills
+
+Like Claude Code skills, the agent sees a short list of skills in its prompt and loads one with `use_skill` when a task matches. Skills live in `src/skills/` as Markdown and are registered in `src/skills/index.ts`.
+
+- `resume`: tailors a resume or cover letter to a job posting so it passes ATS and recruiter screening, and fills application forms. It asks for missing facts instead of inventing them and never uses hidden text or instructions aimed at AI screeners.
 
 ## Connecting to Switchyard
 
@@ -53,6 +61,10 @@ Tool calls from agents show up in the side panel chat marked `MCP`. Clicking or 
 | `key` | Press keys and shortcuts, e.g. `Control+a Delete` |
 | `scroll` | Scroll the page or the area under a ref |
 | `hover` | Move the mouse over a ref or point |
+| `create_file` | Make a file (text or base64) you can download from the chat and `upload_file` can use |
+| `upload_file` | Put an attached file into a file input, upload button or drop zone |
+| `ask_user` | Ask you a question with options in the side panel (not offered to coding agents) |
+| `use_skill` | Load a skill's instructions before a task it covers |
 | `screenshot` | Capture the visible tab as an image in CSS pixels |
 | `wait` | Wait a number of milliseconds |
 
