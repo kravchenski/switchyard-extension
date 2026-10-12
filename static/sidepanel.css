@@ -12,28 +12,16 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
 
 .spacer { flex: 1; }
 
-.link {
-    padding: 2px 4px;
-    border: 0;
-    background: none;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
-}
-.link:hover { color: var(--text); }
-
 /* Top bar */
 
 .topbar {
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 48px;
-    padding: 0 8px 0 14px;
+    height: 44px;
+    padding: 0 8px 0 12px;
     border-bottom: 1px solid var(--border);
 }
-.topbar img { border-radius: 5px; }
-h1 { margin: 0; font-size: 14px; font-weight: 600; }
 
 .icon-button {
     display: grid;
@@ -52,17 +40,9 @@ h1 { margin: 0; font-size: 14px; font-weight: 600; }
 
 main { flex: 1; overflow-y: auto; padding: 16px 14px; display: grid; gap: 12px; align-content: start; }
 
-.empty p { margin: 0 0 10px; color: var(--muted); }
-.examples { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
-.examples li { border-bottom: 1px solid var(--border); }
-.example {
-    width: 100%;
-    padding: 9px 0;
-    border: 0;
-    background: none;
-    text-align: left;
-}
-.example:hover { color: var(--primary); }
+main:has(.empty:not([hidden])) { align-content: center; }
+.empty { display: grid; place-items: center; }
+.empty img { border-radius: 14px; opacity: 0.9; }
 
 .messages { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .messages li { white-space: pre-wrap; word-break: break-word; }
@@ -99,37 +79,8 @@ main { flex: 1; overflow-y: auto; padding: 16px 14px; display: grid; gap: 12px; 
     max-height: 240px;
     overflow: auto;
 }
-.messages img, .output img { display: block; max-width: 100%; border-radius: 6px; }
+.messages img { display: block; border-radius: 6px; }
 .messages img { margin: 0 10px 10px; max-width: calc(100% - 20px); }
-.output img { margin-top: 6px; }
-
-/* Manual tool runner */
-
-.tool-runner { display: grid; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-.tool-runner-head { display: flex; align-items: center; justify-content: space-between; }
-.tool-runner h2 { margin: 0; font-size: 13px; font-weight: 600; }
-.tool-runner select, .tool-runner textarea {
-    width: 100%;
-    padding: 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-}
-.tool-runner textarea { resize: vertical; font: 12px/1.45 ui-monospace, monospace; }
-.tool-runner .button { justify-self: start; }
-
-.output {
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: var(--neutral-soft);
-    white-space: pre-wrap;
-    word-break: break-word;
-    font: 12px/1.45 ui-monospace, monospace;
-    max-height: 320px;
-    overflow: auto;
-}
-.output:empty { display: none; }
-.output.error { color: var(--danger-text); }
 
 /* Composer */
 
@@ -141,11 +92,11 @@ main { flex: 1; overflow-y: auto; padding: 16px 14px; display: grid; gap: 12px; 
 
 .composer {
     display: grid;
-    gap: 6px;
-    padding: 10px 8px 8px 12px;
+    gap: 10px;
+    padding: 12px 8px 8px 14px;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
+    border-radius: 14px;
+    background: var(--canvas);
 }
 .composer:focus-within { border-color: var(--muted); }
 .composer textarea {
@@ -181,7 +132,7 @@ main { flex: 1; overflow-y: auto; padding: 16px 14px; display: grid; gap: 12px; 
 .menu {
     position: absolute;
     bottom: calc(100% + 6px);
-    left: 0;
+    right: 0;
     z-index: 10;
     width: 230px;
     max-height: 320px;
@@ -209,3 +160,18 @@ main { flex: 1; overflow-y: auto; padding: 16px 14px; display: grid; gap: 12px; 
 .menu-item[aria-checked="true"] svg { visibility: visible; }
 .menu-item:hover, .menu-item:focus-visible { background: var(--hover); outline: none; }
 .menu-error { padding: 6px 8px; color: var(--danger-text); font-size: 12px; }
+
+.round-button {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+}
+.round-button:hover:not(:disabled) { opacity: 0.85; }
+.round-button.stop { background: var(--text); color: var(--surface); }
+.round-button.stop svg { fill: currentColor; stroke: none; }

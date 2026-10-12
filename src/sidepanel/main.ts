@@ -1,5 +1,4 @@
 import type { AgentEvent } from '../background/agent.ts';
-import type { ToolDefinition, ToolResult } from '../tools/registry.ts';
 import { PANEL_PORT, type BackgroundToPanel, type BridgeStatus, type PanelToBackground } from '../shared/messages.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
 
@@ -17,17 +16,10 @@ const sendButton = $<HTMLButtonElement>('#send');
 const stopButton = $<HTMLButtonElement>('#stop');
 const confirmBox = $<HTMLElement>('#confirm');
 const confirmText = $<HTMLParagraphElement>('#confirm-text');
-const toolSelect = $<HTMLSelectElement>('#tool');
-const toolDescription = $<HTMLParagraphElement>('#tool-description');
-const argsInput = $<HTMLTextAreaElement>('#args');
-const runButton = $<HTMLButtonElement>('#run');
-const output = $<HTMLDivElement>('#output');
-const toolRunner = $<HTMLElement>('#tool-runner');
 const bridgeStatus = $<HTMLSpanElement>('#bridge-status');
 
 const CHECK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
-let tools: ToolDefinition[] = [];
 let pendingConfirm: string | undefined;
 let lastAssistant: HTMLLIElement | undefined;
 let model = '';
@@ -51,15 +43,6 @@ function send(message: PanelToBackground) {
 
 function onMessage(message: BackgroundToPanel) {
     switch (message.type) {
-        case 'tools':
-            tools = message.tools;
-            toolSelect.replaceChildren(...tools.map(tool => new Option(tool.name, tool.name)));
-            showToolDescription();
-            break;
-        case 'result':
-            runButton.disabled = false;
-            showResult(message.result);
-            break;
         case 'confirm':
             pendingConfirm = message.id;
             confirmText.textContent = message.request.summary;
@@ -225,18 +208,6 @@ function showBridge(status: BridgeStatus) {
         : `${status.error ?? 'Switchyard is not reachable'}. Retrying.`;
 }
 
-function showToolDescription() {
-    toolDescription.textContent = tools.find(tool => tool.name === toolSelect.value)?.description ?? '';
-}
-
-function showResult(result: ToolResult) {
-    output.classList.toggle('error', !!result.isError);
-    output.replaceChildren(...result.content.map((part) => {
-        if (part.type === 'text') return document.createTextNode(`${part.text}\n`);
-        return images([`data:${part.mimeType};base64,${part.data}`])[0]!;
-    }));
-}
-
 function answerConfirm(ok: boolean) {
     if (!pendingConfirm) return;
     send({ type: 'confirm-reply', id: pendingConfirm, ok });
@@ -259,10 +230,6 @@ function fitPrompt() {
 }
 
 prompt.addEventListener('input', fitPrompt);
-
-for (const example of document.querySelectorAll<HTMLButtonElement>('.example')) {
-    example.addEventListener('click', () => send({ type: 'chat', text: example.textContent! }));
-}
 
 prompt.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
@@ -295,28 +262,6 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('click', (event) => {
     if (!modelMenu.hidden && !(event.target as Element).closest('.picker')) closeModelMenu();
 });
-$('#open-tools').addEventListener('click', () => {
-    toolRunner.hidden = !toolRunner.hidden;
-    if (!toolRunner.hidden) scroller.scrollTop = 0;
-});
-$('#close-tools').addEventListener('click', () => {
-    toolRunner.hidden = true;
-});
-toolSelect.addEventListener('change', showToolDescription);
-
-runButton.addEventListener('click', () => {
-    let args: unknown;
-    try {
-        args = JSON.parse(argsInput.value || '{}');
-    } catch (error) {
-        showResult({ content: [{ type: 'text', text: `Arguments are not valid JSON: ${(error as Error).message}` }], isError: true });
-        return;
-    }
-    runButton.disabled = true;
-    output.textContent = 'Running…';
-    send({ type: 'call', id: crypto.randomUUID(), name: toolSelect.value, args });
-});
-
 loadSettings().then((settings) => {
     model = settings.model;
     showModels([]);
