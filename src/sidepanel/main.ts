@@ -1,29 +1,35 @@
 import type { AgentEvent } from '../background/agent.ts';
-import type { ToolDefinition, ToolResult } from '../tools/registry.ts';
 import { PANEL_PORT, type BackgroundToPanel, type BridgeStatus, type PanelToBackground } from '../shared/messages.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
 
 const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector)!;
 
 const messages = $<HTMLOListElement>('#messages');
-const empty = $<HTMLParagraphElement>('#empty');
-const modelSelect = $<HTMLSelectElement>('#model');
+const scroller = $<HTMLElement>('#scroll');
+const empty = $<HTMLElement>('#empty');
+const modelButton = $<HTMLButtonElement>('#model-button');
+const modelLabel = $<HTMLSpanElement>('#model-label');
+const modelMenu = $<HTMLDivElement>('#model-menu');
 const composer = $<HTMLFormElement>('#composer');
 const prompt = $<HTMLTextAreaElement>('#prompt');
 const sendButton = $<HTMLButtonElement>('#send');
 const stopButton = $<HTMLButtonElement>('#stop');
 const confirmBox = $<HTMLElement>('#confirm');
 const confirmText = $<HTMLParagraphElement>('#confirm-text');
-const toolSelect = $<HTMLSelectElement>('#tool');
-const toolDescription = $<HTMLParagraphElement>('#tool-description');
-const argsInput = $<HTMLTextAreaElement>('#args');
-const runButton = $<HTMLButtonElement>('#run');
-const output = $<HTMLDivElement>('#output');
-const bridgeStatus = $<HTMLParagraphElement>('#bridge-status');
+const bridgeStatus = $<HTMLSpanElement>('#bridge-status');
 
-let tools: ToolDefinition[] = [];
+const CHECK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
 let pendingConfirm: string | undefined;
 let lastAssistant: HTMLLIElement | undefined;
+let running = false;
+const thinking = document.createElement('li');
+thinking.className = 'thinking';
+thinking.setAttribute('aria-label', 'Working');
+thinking.append(...[0, 1, 2].map(() => document.createElement('span')));
+let model = '';
+let models: string[] = [];
+let modelsError: string | undefined;
 const toolItems = new Map<string, HTMLDetailsElement>();
 let port = connect();
 
@@ -41,21 +47,13 @@ function send(message: PanelToBackground) {
 }
 
 function onMessage(message: BackgroundToPanel) {
+    // Follow new output only when the user is already at the bottom, not while they read back.
+    const follow = message.type === 'transcript' || (message.type === 'agent' && message.event.type === 'user') || scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 80;
     switch (message.type) {
-        case 'tools':
-            tools = message.tools;
-            toolSelect.replaceChildren(...tools.map(tool => new Option(tool.name, tool.name)));
-            showToolDescription();
-            break;
-        case 'result':
-            runButton.disabled = false;
-            showResult(message.result);
-            break;
         case 'confirm':
             pendingConfirm = message.id;
             confirmText.textContent = message.request.summary;
             confirmBox.hidden = false;
-            confirmBox.scrollIntoView({ block: 'nearest' });
             break;
         case 'transcript':
             messages.replaceChildren();
@@ -75,7 +73,16 @@ function onMessage(message: BackgroundToPanel) {
             showBridge(message.status);
             break;
     }
+    showThinking();
     empty.hidden = messages.childElementCount > 0;
+    if (follow) scroller.scrollTop = scroller.scrollHeight;
+}
+
+/** Three dots at the end of the chat while the agent works and no answer text is streaming yet. */
+function showThinking() {
+    thinking.remove();
+    const last = messages.lastElementChild;
+    if (running && !last?.classList.contains('assistant')) messages.append(thinking);
 }
 
 function item(className: string, text = '') {
@@ -96,6 +103,7 @@ function images(urls: string[]) {
 }
 
 function render(event: AgentEvent) {
+    thinking.remove();
     if (event.type !== 'assistant') lastAssistant = undefined;
     switch (event.type) {
         case 'user':
@@ -109,7 +117,13 @@ function render(event: AgentEvent) {
             const li = item('tool');
             const details = document.createElement('details');
             const summary = document.createElement('summary');
-            summary.textContent = `${event.source === 'bridge' ? 'MCP · ' : ''}${event.name} …`;
+            const name = document.createElement('span');
+            name.className = 'tool-name';
+            name.textContent = event.name;
+            const note = document.createElement('span');
+            note.className = 'tool-note';
+            note.textContent = event.source === 'bridge' ? 'from a coding agent · running' : 'running';
+            summary.append(name, note);
             const args = document.createElement('pre');
             args.textContent = event.args;
             details.append(summary, args);
@@ -121,8 +135,8 @@ function render(event: AgentEvent) {
             const details = toolItems.get(event.id);
             if (!details) break;
             details.classList.toggle('failed', event.isError);
-            const summary = details.querySelector('summary')!;
-            summary.textContent = summary.textContent!.replace(/ …$/, event.isError ? ' failed' : '');
+            const note = details.querySelector('.tool-note')!;
+            note.textContent = note.textContent!.replace('running', event.isError ? 'failed' : 'done');
             const result = document.createElement('pre');
             result.textContent = event.text;
             details.append(result, ...images(event.images));
@@ -132,43 +146,83 @@ function render(event: AgentEvent) {
             item('error', event.message);
             break;
     }
-    messages.lastElementChild?.scrollIntoView({ block: 'end' });
 }
 
-function setRunning(running: boolean) {
+function setRunning(next: boolean) {
+    running = next;
     sendButton.hidden = running;
     stopButton.hidden = !running;
     prompt.disabled = running;
     if (!running) prompt.focus();
 }
 
-function showModels(models: string[], error?: string) {
-    const current = modelSelect.value || modelSelect.dataset.saved || '';
-    const ids = [...new Set([current, 'agent', 'auto', ...models].filter(Boolean))];
-    modelSelect.replaceChildren(...ids.map(id => new Option(id, id)));
-    modelSelect.value = current;
-    modelSelect.title = error ?? 'Model';
-    if (error) item('error', error);
+function showModels(next: string[], error?: string) {
+    models = next;
+    modelsError = error;
+    modelLabel.textContent = model;
+    modelButton.title = error ? `Model (${error})` : 'Model';
+    if (!modelMenu.hidden) renderModelMenu();
+}
+
+function menuItem(id: string) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'menu-item';
+    button.setAttribute('role', 'menuitemradio');
+    button.setAttribute('aria-checked', String(id === model));
+    const label = document.createElement('span');
+    label.textContent = id;
+    button.append(label);
+    button.insertAdjacentHTML('beforeend', CHECK_ICON);
+    button.addEventListener('click', () => {
+        model = id;
+        modelLabel.textContent = id;
+        saveSettings({ model: id });
+        closeModelMenu();
+    });
+    return button;
+}
+
+function menuLabel(text: string) {
+    const label = document.createElement('div');
+    label.className = 'menu-label';
+    label.textContent = text;
+    return label;
+}
+
+function renderModelMenu() {
+    const virtual = ['agent', 'auto', 'vision'];
+    const others = [...new Set([model, ...models])].filter(id => id && !virtual.includes(id));
+    modelMenu.replaceChildren(menuLabel('Switchyard routing'), ...virtual.map(menuItem));
+    if (others.length) modelMenu.append(menuLabel('Models'), ...others.map(menuItem));
+    if (modelsError) {
+        const error = document.createElement('div');
+        error.className = 'menu-error';
+        error.textContent = modelsError;
+        modelMenu.append(error);
+    }
+}
+
+function openModelMenu() {
+    renderModelMenu();
+    modelMenu.hidden = false;
+    modelButton.setAttribute('aria-expanded', 'true');
+    (modelMenu.querySelector<HTMLElement>('[aria-checked="true"]') ?? modelMenu.querySelector<HTMLElement>('.menu-item'))?.focus();
+    send({ type: 'list-models' });
+}
+
+function closeModelMenu() {
+    modelMenu.hidden = true;
+    modelButton.setAttribute('aria-expanded', 'false');
 }
 
 function showBridge(status: BridgeStatus) {
     bridgeStatus.hidden = !status.enabled;
-    bridgeStatus.classList.toggle('connected', status.connected);
-    bridgeStatus.textContent = status.connected
-        ? 'Coding agents connected through Switchyard (MCP)'
-        : `MCP bridge offline${status.error ? `: ${status.error}` : ''}; retrying`;
-}
-
-function showToolDescription() {
-    toolDescription.textContent = tools.find(tool => tool.name === toolSelect.value)?.description ?? '';
-}
-
-function showResult(result: ToolResult) {
-    output.classList.toggle('error', !!result.isError);
-    output.replaceChildren(...result.content.map((part) => {
-        if (part.type === 'text') return document.createTextNode(`${part.text}\n`);
-        return images([`data:${part.mimeType};base64,${part.data}`])[0]!;
-    }));
+    bridgeStatus.classList.toggle('ok', status.connected);
+    bridgeStatus.textContent = status.connected ? 'MCP connected' : 'MCP offline';
+    bridgeStatus.title = status.connected
+        ? 'Coding agents can use this browser through Switchyard'
+        : `${status.error ?? 'Switchyard is not reachable'}. Retrying.`;
 }
 
 function answerConfirm(ok: boolean) {
@@ -183,8 +237,16 @@ composer.addEventListener('submit', (event) => {
     const text = prompt.value.trim();
     if (!text) return;
     prompt.value = '';
+    fitPrompt();
     send({ type: 'chat', text });
 });
+
+function fitPrompt() {
+    prompt.style.height = 'auto';
+    prompt.style.height = `${prompt.scrollHeight}px`;
+}
+
+prompt.addEventListener('input', fitPrompt);
 
 prompt.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
@@ -198,24 +260,27 @@ $('#new-chat').addEventListener('click', () => send({ type: 'reset' }));
 $('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
 $('#confirm-allow').addEventListener('click', () => answerConfirm(true));
 $('#confirm-deny').addEventListener('click', () => answerConfirm(false));
-modelSelect.addEventListener('change', () => saveSettings({ model: modelSelect.value }));
-toolSelect.addEventListener('change', showToolDescription);
-
-runButton.addEventListener('click', () => {
-    let args: unknown;
-    try {
-        args = JSON.parse(argsInput.value || '{}');
-    } catch (error) {
-        showResult({ content: [{ type: 'text', text: `Arguments are not valid JSON: ${(error as Error).message}` }], isError: true });
-        return;
+modelButton.addEventListener('click', () => (modelMenu.hidden ? openModelMenu() : closeModelMenu()));
+modelMenu.addEventListener('keydown', (event) => {
+    const items = [...modelMenu.querySelectorAll<HTMLElement>('.menu-item')];
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        items[(index + step + items.length) % items.length]?.focus();
     }
-    runButton.disabled = true;
-    output.textContent = 'Running…';
-    send({ type: 'call', id: crypto.randomUUID(), name: toolSelect.value, args });
 });
-
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modelMenu.hidden) {
+        closeModelMenu();
+        modelButton.focus();
+    }
+});
+document.addEventListener('click', (event) => {
+    if (!modelMenu.hidden && !(event.target as Element).closest('.picker')) closeModelMenu();
+});
 loadSettings().then((settings) => {
-    modelSelect.dataset.saved = settings.model;
+    model = settings.model;
     showModels([]);
     send({ type: 'list-models' });
 });
