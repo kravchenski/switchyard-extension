@@ -5,20 +5,16 @@
   <img src="docs/images/logo-light.png" alt="switchyard" width="420">
 </picture>
 
-**Browser extension for [Switchyard](https://github.com/kravchenski/switchyard).**<br>
-A side panel agent that reads pages, clicks, types and manages your tabs with any model behind Switchyard, and the same browser tools for Claude Code, Codex and OpenCode over MCP.
+Chrome extension for [Switchyard](https://github.com/kravchenski/switchyard). It gives the models behind Switchyard a side panel chat that can read pages, click, type and manage tabs, and gives Claude Code, Codex and OpenCode the same browser tools over MCP.
 
 [![CI](https://github.com/kravchenski/switchyard-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/kravchenski/switchyard-extension/actions/workflows/ci.yml)
-[![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest%20V3-1f7a4d?logo=googlechrome&logoColor=fff)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
-[![Bun](https://img.shields.io/badge/built%20with-Bun-f9f1e1?logo=bun&logoColor=000)](https://bun.sh)
-[![MCP](https://img.shields.io/badge/MCP-browser%20tools-34a873)](#coding-agents-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Install](#install) · [Side panel](#side-panel) · [Coding agents](#coding-agents-mcp) · [Tools](#tools) · [Safety](#safety) · [Development](#development)
 
-<img src="docs/images/panel-and-page.jpg" alt="The side panel filling in a job application: the agent loaded the resume skill, read the page, uploaded cv.pdf and asks for the notice period with three options, while the page shows a green frame, the agent's cursor and a status bar with Stop" width="900">
+<img src="docs/images/demo.gif" alt="The side panel fills in a job application: it loads the resume skill, reads the page, types each field with a visible cursor, uploads cv.pdf, asks for the notice period and types the answer" width="900">
 
-*Filling in an application: the agent works in the page on the left and asks what only you know on the right.*
+Filling in a job application from a CV. [Watch as MP4](docs/images/demo.mp4)
 
 </div>
 
@@ -32,11 +28,11 @@ flowchart LR
   E --> T["Your Chrome tabs"]
 ```
 
-- **Uses your browser as you do.** The agent reads the page as an outline with element refs, clicks and types with real mouse and keyboard events, takes screenshots, and opens, groups and closes tabs.
-- **Shows what it is doing.** The tab it works in joins a green **Switchyard** tab group. A frame, a status bar with Stop and a gliding cursor mark every action on the page.
-- **Any model behind Switchyard.** The panel talks to Switchyard's OpenAI-compatible API, so `agent`, `auto` or any listed model can drive it, including free APIs and signed-in web chats.
-- **One set of tools for coding agents.** Switchyard serves the same tools over MCP, so Claude Code, Codex and OpenCode can test a page, fill a form or read docs in your real browser.
-- **Asks instead of guessing.** Questions come as cards with options you answer with a click or a number key, and acting on a new site needs your approval.
+The panel sends your message to Switchyard with a set of browser tools, runs the tool calls the model returns and repeats until the model answers. Pages are read as an outline with element refs; clicks and typing go through `chrome.debugger` as real input events. Any model Switchyard lists can drive it, including `agent` and `auto`.
+
+The same tools reach coding agents: the extension keeps a WebSocket to Switchyard, and Switchyard serves the tools over MCP.
+
+While the agent works, its tab joins a green Switchyard tab group, and the page shows a frame, a status bar with Stop and the cursor moving to each click.
 
 ## Install
 
@@ -57,14 +53,15 @@ The manifest `key` pins the extension id to `dammhajbcgfiiaokdhfchhncfaknaemj`, 
 
 ## Side panel
 
-Type what you want done: *"group my GitHub tabs into a blue group called Code"*, *"summarize this page"*, *"fill in this form with my CV"*. The agent sends your message with the browser tools to Switchyard, runs the tool calls the model returns and loops until it has an answer.
+Ask in plain words: "group my GitHub tabs into a blue group called Code", "summarize this page", "fill in this form with my CV". Answers render as Markdown, and each tool call is a row you can expand.
 
-- **Answers in Markdown.** Lists, tables, code and links render in the chat; tool calls show as compact rows you can expand.
-- **Attach files** with the paperclip, by pasting or by dropping them on the panel (up to 5 files, 10 MB each). Text files and images go to the model with your message. Other files, such as a PDF CV, are listed for `upload_file`, which puts them into a file field on the page.
-- **Files the agent makes.** `create_file` writes a cover letter, a CSV or notes. They appear in the chat with **Download** and stay in memory for the conversation only.
-- **Questions with options.** When the agent needs something only you know, `ask_user` shows a card: click an option, press its number, or type your own answer.
-- **Skills.** Like Claude Code skills, the agent loads step-by-step instructions with `use_skill` when a task matches. The `resume` skill tailors a resume or cover letter to a job posting so it passes ATS and recruiter screening, and fills application forms. It asks for missing facts instead of inventing them. Add your own in `src/skills/`.
-- **Model picker.** Switch between Switchyard's `agent`, `auto` and `vision` routing or any model it lists.
+Files can be attached with the paperclip, pasted, or dropped on the panel, up to 5 files of 10 MB each. Text files and images go to the model with your message. Other files, such as a PDF, are only named to the model; `upload_file` can put them into a file field on the page. The agent can also write files with `create_file` (a cover letter, a CSV); they show up in the chat with a Download button and are kept only for the conversation.
+
+When the agent needs something only you know, it asks with `ask_user`. Click an option, press its number or type your own answer.
+
+Skills are instructions the agent loads with `use_skill` when a task fits, the way Claude Code does. There is one so far, `resume`, for tailoring a resume or cover letter to a job posting and filling in application forms. It asks for missing facts rather than inventing them. Skills live in `src/skills/`.
+
+The model picker in the composer switches between Switchyard's `agent`, `auto` and `vision` routing and the models it lists.
 
 <div align="center">
 <img src="docs/images/settings.jpg" alt="Settings: Switchyard address, API key, ask before acting on a new site, and the coding agents section with bridge status and the claude mcp add command" width="420">
@@ -117,11 +114,11 @@ Calls from agents show up in the side panel chat marked as coming from a coding 
 
 ## Safety
 
-- **Approval per site.** `click`, `type`, `key` and `upload_file` ask once per site per browser session before acting. You can turn this off in **Settings**.
-- **Coding agents ask too.** Their actions on a new site go through the side panel when it is open; otherwise the call fails with a message for the agent, unless **Act on new sites without asking** is on.
-- **Page text is data.** The agent is told never to follow instructions found in a page and to ask before purchases, sending messages, deleting data or entering passwords and payment details.
-- **Files stay in memory.** Attached and created files live in the extension for the conversation, up to 2 MB per created file. Nothing reaches your disk unless you click **Download**.
-- **Visible debugging.** Input uses `chrome.debugger`, so Chrome shows its "started debugging this browser" bar while the agent works. It detaches after 30 seconds without input.
+- `click`, `type`, `key` and `upload_file` ask once per site per browser session. This can be turned off in Settings.
+- Coding agents get the same prompt in the side panel when it is open. When it is closed, their call fails with a message for the agent, unless "Act on new sites without asking" is on.
+- The agent is told to treat page text as data, never as instructions, and to ask before purchases, sending messages, deleting data or entering passwords and payment details.
+- Attached and created files stay in the extension's memory for the conversation (created files up to 2 MB). Nothing is written to disk unless you click Download.
+- Because input uses `chrome.debugger`, Chrome shows its "started debugging this browser" bar while the agent works. The debugger detaches after 30 seconds without input.
 
 ## Development
 
@@ -139,7 +136,7 @@ bun run ci         # typecheck, tests and build
 | `src/skills/` | Skills as Markdown, registered in `index.ts` |
 | `static/` | Manifest, HTML, CSS, fonts and icons |
 
-**CI** runs typecheck, tests and build on every push to `master` and on pull requests, and uploads `dist/` as an artifact. **Release** runs on a `v*` tag: it checks that the tag matches `package.json` and `static/manifest.json`, then attaches a zipped `dist/` to a GitHub release.
+CI runs typecheck, tests and build on every push to `master` and on pull requests, and uploads `dist/` as an artifact. Release runs on a `v*` tag: it checks that the tag matches `package.json` and `static/manifest.json`, then attaches a zipped `dist/` to a GitHub release.
 
 ```sh
 git tag v0.1.0 && git push origin v0.1.0
