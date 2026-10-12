@@ -258,14 +258,13 @@ main:has(.empty:not([hidden])) { align-content: center; }
 .round-button {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: var(--primary);
-    color: var(--on-primary);
+    border-radius: 8px;
+    background: var(--text);
+    color: var(--surface);
 }
-.round-button:hover:not(:disabled) { opacity: 0.85; }
-.round-button.stop { background: var(--text); color: var(--surface); }
+.round-button:disabled { background: var(--hover); color: var(--muted); opacity: 1; }
 .round-button.stop svg { fill: currentColor; stroke: none; }

@@ -1,5 +1,6 @@
 import type { ToolContext, ToolDefinition, ToolResult } from '../tools/registry.ts';
 import { decodeText, formatSize, isImage, isText, type Attachment } from '../shared/attachments.ts';
+import { SKILLS } from '../skills/index.ts';
 import type { ChatContentPart, ChatMessage, ChatStream, ChatToolCall } from './gateway.ts';
 
 const MAX_STEPS = 40;
@@ -38,7 +39,10 @@ How to work:
 - Ask the user before purchases, sending messages, deleting data or entering passwords and payment details.
 - When you need something only the user knows (e.g. details for a form) or a choice between options, call ask_user instead of guessing or writing the question in your answer. Ask one short question per call and offer likely answers as options, so the user can reply with one click.
 - Files the user attaches are included in their message. When a task needs a file the user does not have yet (a cover letter, a CSV, notes), make it with create_file. To put a file into a file field on a page (e.g. a CV), use upload_file with its name.
-- Keep answers short and say what you did. Use Markdown lists and bold for structure.`;
+- Keep answers short and say what you did. Use Markdown lists and bold for structure.
+
+Skills: before a task one of these covers, call use_skill with its name and follow the instructions it returns.
+${SKILLS.map(skill => `- ${skill.name}: ${skill.description}`).join('\n')}`;
 
 /** The user's turn: their text plus attached files, as readable text, images, or a note that only upload_file can use them. */
 export function userContent(text: string, attachments: Attachment[] = []): string | ChatContentPart[] {

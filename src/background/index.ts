@@ -1,4 +1,5 @@
 import { askUser } from '../tools/ask.ts';
+import { useSkill } from '../tools/skills.ts';
 import { createFile, uploadFile } from '../tools/files.ts';
 import { GROUP_TOOLS } from '../tools/groups.ts';
 import { INPUT_TOOLS } from '../tools/input.ts';
@@ -16,7 +17,7 @@ import { addPanel, confirmInPanel, hasPanel, postToPanels, resolveConfirm } from
 import { setPanelRunning, watchTabs } from './presence.ts';
 import { adoptActiveTab, resolveTab, sessionGroupId } from './session.ts';
 
-export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, createFile, uploadFile, ...SCREENSHOT_TOOLS, askUser);
+export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, createFile, uploadFile, ...SCREENSHOT_TOOLS, askUser, useSkill);
 
 const pendingAnswers = new Map<string, (text: string) => void>();
 

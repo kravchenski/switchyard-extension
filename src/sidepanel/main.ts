@@ -190,6 +190,16 @@ function setRunning(next: boolean) {
     updateComposer();
 }
 
+/** The model without its provider prefix; the full id stays in the menu and tooltip. */
+function showModelName() {
+    modelLabel.textContent = model.split('/').pop() ?? model;
+    modelLabel.title = model;
+}
+
+function updateSendButton() {
+    sendButton.disabled = !prompt.value.trim() && !(attachments.length && !pendingQuestion);
+}
+
 function updateComposer() {
     const answering = pendingQuestion !== undefined;
     sendButton.hidden = running && !answering;
@@ -198,6 +208,7 @@ function updateComposer() {
     prompt.placeholder = answering ? 'Type your own answer, or press 1-9 to pick an option' : PROMPT_PLACEHOLDER;
     $<HTMLButtonElement>('#attach').disabled = running;
     if (!prompt.disabled) prompt.focus();
+    updateSendButton();
 }
 
 function setPendingQuestion(id: string | undefined) {
@@ -304,6 +315,7 @@ function showAttachments() {
         showAttachments();
     }).children);
     fileList.hidden = !attachments.length;
+    updateSendButton();
 }
 
 function readFile(file: File) {
@@ -330,7 +342,7 @@ async function attach(files: FileList | File[]) {
 function showModels(next: string[], error?: string) {
     models = next;
     modelsError = error;
-    modelLabel.textContent = model;
+    showModelName();
     modelButton.title = error ? `Model (${error})` : 'Model';
     if (!modelMenu.hidden) renderModelMenu();
 }
@@ -347,7 +359,7 @@ function menuItem(id: string) {
     button.insertAdjacentHTML('beforeend', CHECK_ICON);
     button.addEventListener('click', () => {
         model = id;
-        modelLabel.textContent = id;
+        showModelName();
         saveSettings({ model: id });
         closeModelMenu();
     });
@@ -389,8 +401,7 @@ function closeModelMenu() {
 
 function showBridge(status: BridgeStatus) {
     bridgeStatus.hidden = !status.enabled;
-    bridgeStatus.classList.toggle('ok', status.connected);
-    bridgeStatus.textContent = status.connected ? 'MCP connected' : 'MCP offline';
+    bridgeStatus.textContent = status.connected ? 'MCP' : 'MCP offline';
     bridgeStatus.title = status.connected
         ? 'Coding agents can use this browser through Switchyard'
         : `${status.error ?? 'Switchyard is not reachable'}. Retrying.`;
@@ -417,6 +428,7 @@ composer.addEventListener('submit', (event) => {
     }
     prompt.value = '';
     fitPrompt();
+    updateSendButton();
 });
 
 function fitPrompt() {
@@ -424,7 +436,10 @@ function fitPrompt() {
     prompt.style.height = `${prompt.scrollHeight}px`;
 }
 
-prompt.addEventListener('input', fitPrompt);
+prompt.addEventListener('input', () => {
+    fitPrompt();
+    updateSendButton();
+});
 
 prompt.addEventListener('keydown', (event) => {
     const question = pendingQuestion && questions.get(pendingQuestion);
