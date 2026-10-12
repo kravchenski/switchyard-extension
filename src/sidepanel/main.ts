@@ -47,6 +47,8 @@ function send(message: PanelToBackground) {
 }
 
 function onMessage(message: BackgroundToPanel) {
+    // Follow new output only when the user is already at the bottom, not while they read back.
+    const follow = message.type === 'transcript' || (message.type === 'agent' && message.event.type === 'user') || scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 80;
     switch (message.type) {
         case 'confirm':
             pendingConfirm = message.id;
@@ -73,6 +75,7 @@ function onMessage(message: BackgroundToPanel) {
     }
     showThinking();
     empty.hidden = messages.childElementCount > 0;
+    if (follow) scroller.scrollTop = scroller.scrollHeight;
 }
 
 /** Three dots at the end of the chat while the agent works and no answer text is streaming yet. */
@@ -80,7 +83,6 @@ function showThinking() {
     thinking.remove();
     const last = messages.lastElementChild;
     if (running && !last?.classList.contains('assistant')) messages.append(thinking);
-    scroller.scrollTop = scroller.scrollHeight;
 }
 
 function item(className: string, text = '') {
@@ -144,7 +146,6 @@ function render(event: AgentEvent) {
             item('error', event.message);
             break;
     }
-    scroller.scrollTop = scroller.scrollHeight;
 }
 
 function setRunning(next: boolean) {
