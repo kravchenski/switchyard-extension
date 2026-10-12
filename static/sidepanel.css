@@ -102,6 +102,23 @@ main:has(.empty:not([hidden])) { align-content: center; }
 .question.answered .option.picked { border-color: var(--primary); color: var(--text); }
 .question.answered .option:disabled { opacity: 1; cursor: default; }
 
+/* Files the agent created */
+
+.messages .file-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    white-space: normal;
+}
+.file-card div { display: grid; min-width: 0; }
+.file-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.file-card span { color: var(--muted); font-size: 12px; }
+.file-card .button { flex: none; text-decoration: none; }
+
 /* Attached files */
 
 .files { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }

@@ -1,5 +1,5 @@
 import { askUser } from '../tools/ask.ts';
-import { uploadFile } from '../tools/files.ts';
+import { createFile, uploadFile } from '../tools/files.ts';
 import { GROUP_TOOLS } from '../tools/groups.ts';
 import { INPUT_TOOLS } from '../tools/input.ts';
 import { PAGE_TOOLS } from '../tools/page.ts';
@@ -9,14 +9,14 @@ import { TAB_TOOLS } from '../tools/tabs.ts';
 import { PANEL_PORT, type BridgeStatus, type PanelToBackground } from '../shared/messages.ts';
 import { DEFAULT_SETTINGS, loadSettings, type Settings } from '../shared/settings.ts';
 import { Agent, toolEndEvent, type AgentEvent } from './agent.ts';
-import { addAttachments, attachmentNames, clearAttachments } from './attachments.ts';
+import { addAttachments, attachmentNames, clearAttachments, onFileCreated } from './attachments.ts';
 import { BridgeClient } from './bridge.ts';
 import { chatStream, listModels } from './gateway.ts';
 import { addPanel, confirmInPanel, hasPanel, postToPanels, resolveConfirm } from './panel.ts';
-import { setPanelRunning } from './presence.ts';
+import { setPanelRunning, watchTabs } from './presence.ts';
 import { adoptActiveTab, resolveTab, sessionGroupId } from './session.ts';
 
-export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, uploadFile, ...SCREENSHOT_TOOLS, askUser);
+export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, createFile, uploadFile, ...SCREENSHOT_TOOLS, askUser);
 
 const pendingAnswers = new Map<string, (text: string) => void>();
 
@@ -54,6 +54,11 @@ function record(event: AgentEvent) {
     else if (event.type !== 'running') transcript.push({ ...event });
     postToPanels({ type: 'agent', event });
 }
+
+watchTabs();
+
+// Files the agent makes show up in the chat with a download button.
+onFileCreated(file => record({ type: 'file', ...file }));
 
 const bridge = new BridgeClient({
     version: chrome.runtime.getManifest().version,

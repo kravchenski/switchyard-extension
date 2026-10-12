@@ -134,6 +134,9 @@ function render(event: AgentEvent) {
         case 'question':
             renderQuestion(event);
             break;
+        case 'file':
+            renderFile(event);
+            break;
         case 'answer': {
             const question = questions.get(event.id);
             question?.classList.add('answered');
@@ -248,6 +251,23 @@ function renderQuestion(event: Extract<AgentEvent, { type: 'question' }>) {
     }
     questions.set(event.id, li);
     setPendingQuestion(event.id);
+}
+
+/** A file the agent made with create_file; it reaches the disk only when the user downloads it. */
+function renderFile(file: Extract<AgentEvent, { type: 'file' }>) {
+    const li = item('file-card');
+    const info = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = file.name;
+    const meta = document.createElement('span');
+    meta.textContent = `Created by Switchyard · ${formatSize(file.size)}`;
+    info.append(name, meta);
+    const download = document.createElement('a');
+    download.className = 'button outline';
+    download.href = `data:${file.mimeType};base64,${file.data}`;
+    download.download = file.name;
+    download.textContent = 'Download';
+    li.append(info, download);
 }
 
 function fileChips(files: { name: string; size?: number }[], remove?: (index: number) => void) {

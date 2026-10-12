@@ -48,3 +48,25 @@ describe('ask_user', () => {
         expect(result.content).toEqual([{ type: 'text', text: 'The user answered: Warsaw' }]);
     });
 });
+
+describe('create_file', () => {
+    test('stores text files for upload_file and rejects bad base64', async () => {
+        const { createFile } = await import('../src/tools/files.ts');
+        const { getAttachment, onFileCreated } = await import('../src/background/attachments.ts');
+        const registry = new ToolRegistry().register(createFile);
+        const context = { source: 'panel' as const, confirm: async () => true };
+        const created: string[] = [];
+        onFileCreated(file => created.push(file.name));
+
+        const result = await registry.call('create_file', { name: 'cover/letter.md', content: 'Привет' }, context);
+        expect(result.isError).toBeFalsy();
+        const file = getAttachment('cover_letter.md')!;
+        expect(file.mimeType).toBe('text/markdown');
+        expect(file.size).toBe(12);
+        expect(new TextDecoder().decode(Uint8Array.from(atob(file.data), char => char.charCodeAt(0)))).toBe('Привет');
+        expect(created).toEqual(['cover_letter.md']);
+
+        const bad = await registry.call('create_file', { name: 'x.bin', content: '!!!', encoding: 'base64' }, context);
+        expect(bad.isError).toBe(true);
+    });
+});
