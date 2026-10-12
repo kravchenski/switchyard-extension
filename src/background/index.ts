@@ -112,7 +112,6 @@ chrome.runtime.onMessage.addListener((message: { type?: string }, sender, sendRe
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== PANEL_PORT) return;
     addPanel(port);
-    port.postMessage({ type: 'tools', tools: tools.definitions() });
     port.postMessage({ type: 'transcript', events: transcript, running: agent.running });
     settingsReady.then(() => port.postMessage({ type: 'bridge', status: bridge.currentStatus() }));
     port.onMessage.addListener(async (message: PanelToBackground) => {
@@ -121,11 +120,6 @@ chrome.runtime.onConnect.addListener((port) => {
             case 'confirm-reply':
                 resolveConfirm(message.id, message.ok);
                 break;
-            case 'call': {
-                const result = await tools.call(message.name, message.args, panelContext);
-                port.postMessage({ type: 'result', id: message.id, result });
-                break;
-            }
             case 'chat':
                 if (agent.running) break;
                 if (!transcript.length) await adoptActiveTab().catch(console.error);

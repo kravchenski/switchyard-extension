@@ -13,7 +13,7 @@ bun run ci         # typecheck + tests + build
 
 Load it in Chrome: open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and pick `dist/`. The manifest `key` pins the extension id to `dammhajbcgfiiaokdhfchhncfaknaemj`.
 
-Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat, and **Run a tool manually** at the bottom runs a single tool by hand.
+Click the toolbar icon to open the side panel and ask Switchyard to do something with your tabs. The agent sends your message to Switchyard's `/v1/chat/completions` with the browser tools below, runs the tool calls the model returns, and loops until the model answers. Tool calls and screenshots show up in the chat.
 
 ## Connecting to Switchyard
 

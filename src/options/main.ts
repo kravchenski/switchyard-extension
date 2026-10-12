@@ -7,7 +7,7 @@ const apiKey = document.querySelector<HTMLInputElement>('#api-key')!;
 const askBeforeActing = document.querySelector<HTMLInputElement>('#ask-before-acting')!;
 const bridgeEnabled = document.querySelector<HTMLInputElement>('#bridge-enabled')!;
 const bridgeAutoApprove = document.querySelector<HTMLInputElement>('#bridge-auto-approve')!;
-const bridgeStatus = document.querySelector<HTMLParagraphElement>('#bridge-status')!;
+const bridgeStatus = document.querySelector<HTMLSpanElement>('#bridge-status')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 
 document.querySelector('#origin')!.textContent = `chrome-extension://${chrome.runtime.id}`;
@@ -30,9 +30,9 @@ async function save() {
 
 async function refreshBridgeStatus() {
     const status = await chrome.runtime.sendMessage({ type: 'bridge-status' }) as BridgeStatus;
-    if (!status.enabled) bridgeStatus.textContent = 'Bridge is off.';
-    else if (status.connected) bridgeStatus.textContent = 'Bridge connected to Switchyard.';
-    else bridgeStatus.textContent = `Bridge not connected${status.error ? `: ${status.error}` : ''}.`;
+    bridgeStatus.className = `chip ${status.connected ? 'ok' : status.enabled ? 'error' : ''}`;
+    bridgeStatus.textContent = !status.enabled ? 'Off' : status.connected ? 'Connected' : 'Not connected';
+    bridgeStatus.title = status.error ?? '';
 }
 
 form.addEventListener('submit', async (event) => {

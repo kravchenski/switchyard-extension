@@ -4,44 +4,56 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Switchyard</title>
+    <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
-    <header>
-        <h1>Switchyard</h1>
-        <select id="model" aria-label="Model" title="Model"></select>
-        <button id="new-chat" type="button" class="secondary">New chat</button>
-        <button id="open-options" type="button" class="secondary" aria-label="Settings" title="Settings">Settings</button>
+    <header class="topbar">
+        <span id="bridge-status" class="chip" hidden></span>
+        <div class="spacer"></div>
+        <button id="new-chat" type="button" class="icon-button" aria-label="New chat" title="New chat">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        </button>
+        <button id="open-options" type="button" class="icon-button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        </button>
     </header>
-    <p id="bridge-status" class="bridge-status" hidden></p>
-    <main>
+
+    <main id="scroll">
+        <div id="empty" class="empty">
+            <img src="icons/icon-128.png" alt="Switchyard" width="56" height="56">
+        </div>
         <ol id="messages" class="messages" aria-live="polite"></ol>
-        <p id="empty" class="hint empty">Ask Switchyard to work with your tabs, e.g. "group my GitHub tabs into a blue group called Code".</p>
+    </main>
+
+    <footer class="footer">
         <section id="confirm" class="confirm" hidden>
             <p id="confirm-text"></p>
             <div class="actions">
-                <button id="confirm-allow" type="button">Allow</button>
-                <button id="confirm-deny" type="button" class="secondary">Deny</button>
+                <button id="confirm-deny" type="button" class="button outline">Deny</button>
+                <button id="confirm-allow" type="button" class="button">Allow</button>
             </div>
         </section>
-        <details class="tool-runner">
-            <summary>Run a tool manually</summary>
-            <label for="tool">Tool</label>
-            <select id="tool"></select>
-            <p id="tool-description" class="hint"></p>
-            <label for="args">Arguments (JSON)</label>
-            <textarea id="args" rows="4" spellcheck="false">{}</textarea>
-            <button id="run" type="button">Run</button>
-            <div id="output" class="output" aria-live="polite"></div>
-        </details>
-    </main>
-    <form id="composer" class="composer">
-        <textarea id="prompt" rows="3" placeholder="What should Switchyard do?" aria-label="Message"></textarea>
-        <div class="actions">
-            <button id="send" type="submit">Send</button>
-            <button id="stop" type="button" class="secondary" hidden>Stop</button>
-        </div>
-    </form>
+        <form id="composer" class="composer">
+            <textarea id="prompt" rows="1" placeholder="How can I help you today?" aria-label="Message"></textarea>
+            <div class="composer-bar">
+                <div class="spacer"></div>
+                <div class="picker">
+                    <button id="model-button" type="button" class="model-button" aria-haspopup="menu" aria-expanded="false" title="Model">
+                        <span id="model-label">agent</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div id="model-menu" class="menu" role="menu" hidden></div>
+                </div>
+                <button id="send" type="submit" class="round-button" aria-label="Send" title="Send">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                </button>
+                <button id="stop" type="button" class="round-button stop" aria-label="Stop" title="Stop" hidden>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+                </button>
+            </div>
+        </form>
+    </footer>
     <script type="module" src="sidepanel.js"></script>
 </body>
 </html>
