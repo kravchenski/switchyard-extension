@@ -1,5 +1,6 @@
 import { cdp } from '../background/debugger.ts';
-import { resolveTab } from '../background/session.ts';
+import { withoutOverlay } from '../background/presence.ts';
+import { workTab } from '../background/session.ts';
 import { json, type Tool } from './registry.ts';
 
 const MAX_EDGE = 1568;
@@ -31,11 +32,11 @@ export const screenshot: Tool = {
     name: 'screenshot',
     description: 'Capture the visible part of a tab as an image. Image pixels map to viewport CSS pixels for click x/y (divide by "scale" when it is below 1). Brings the tab to the front of its window.',
     inputSchema: { type: 'object', properties: { tabId: { type: 'integer' } } },
-    async run(args) {
-        const tab = await resolveTab(args.tabId as number | undefined);
+    async run(args, context) {
+        const tab = await workTab(args.tabId as number | undefined, context);
         if (!tab.active) await chrome.tabs.update(tab.id, { active: true });
         const metrics = await cdp<{ cssLayoutViewport: { clientWidth: number; clientHeight: number } }>(tab.id, 'Page.getLayoutMetrics');
-        const capture = await cdp<{ data: string }>(tab.id, 'Page.captureScreenshot', { format: 'png' });
+        const capture = await withoutOverlay(tab, () => cdp<{ data: string }>(tab.id, 'Page.captureScreenshot', { format: 'png' }));
         const image = await resize(capture.data, metrics.cssLayoutViewport.clientWidth, metrics.cssLayoutViewport.clientHeight);
         const info = json({ tabId: tab.id, url: tab.url, width: image.width, height: image.height, scale: Number(image.scale.toFixed(4)) });
         return { content: [...info.content, { type: 'image', data: image.data, mimeType: 'image/jpeg' }] };

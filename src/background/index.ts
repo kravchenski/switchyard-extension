@@ -10,6 +10,7 @@ import { Agent, toolEndEvent, type AgentEvent } from './agent.ts';
 import { BridgeClient } from './bridge.ts';
 import { chatStream, listModels } from './gateway.ts';
 import { addPanel, confirmInPanel, hasPanel, postToPanels, resolveConfirm } from './panel.ts';
+import { setPanelRunning } from './presence.ts';
 import { adoptActiveTab, resolveTab, sessionGroupId } from './session.ts';
 
 export const tools = new ToolRegistry().register(...TAB_TOOLS, ...GROUP_TOOLS, ...PAGE_TOOLS, ...INPUT_TOOLS, ...SCREENSHOT_TOOLS);
@@ -28,6 +29,7 @@ const transcript: AgentEvent[] = [];
 function record(event: AgentEvent) {
     // Merge streamed text so a reopened panel replays whole messages.
     const last = transcript.at(-1);
+    if (event.type === 'running') setPanelRunning(event.running);
     if (event.type === 'assistant' && last?.type === 'assistant') last.text += event.text;
     else if (event.type !== 'running') transcript.push({ ...event });
     postToPanels({ type: 'agent', event });
@@ -92,7 +94,12 @@ async function modelsReply() {
     }
 }
 
-chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: { type?: string }, sender, sendResponse) => {
+    // Sent by the Stop button of the overlay this extension injects into the page.
+    if (message.type === 'stop-agent' && sender.id === chrome.runtime.id) {
+        agent.stop();
+        return false;
+    }
     if (message.type === 'bridge-status') {
         settingsReady.then(() => sendResponse(bridge.currentStatus()));
         return true;

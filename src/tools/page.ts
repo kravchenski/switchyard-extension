@@ -1,6 +1,6 @@
 import { pageText, snapshotPage } from '../content/snapshot.ts';
 import { runInTab } from '../background/scripting.ts';
-import { resolveTab } from '../background/session.ts';
+import { workTab } from '../background/session.ts';
 import { text, type Tool } from './registry.ts';
 
 const tabId = { type: 'integer', description: 'Tab id. Defaults to the tab the agent is working in.' } as const;
@@ -21,8 +21,8 @@ export const readPage: Tool = {
             maxChars,
         },
     },
-    async run(args) {
-        const tab = await resolveTab(args.tabId as number | undefined);
+    async run(args, context) {
+        const tab = await workTab(args.tabId as number | undefined, context);
         const snapshot = await runInTab(tab, snapshotPage, {
             mode: (args.mode as 'interactive' | 'all' | undefined) ?? 'interactive',
             maxChars: (args.maxChars as number | undefined) ?? 30_000,
@@ -50,8 +50,8 @@ export const find: Tool = {
         },
         required: ['query'],
     },
-    async run(args) {
-        const tab = await resolveTab(args.tabId as number | undefined);
+    async run(args, context) {
+        const tab = await workTab(args.tabId as number | undefined, context);
         const snapshot = await runInTab(tab, snapshotPage, {
             mode: 'interactive',
             maxChars: 20_000,
@@ -66,8 +66,8 @@ export const getPageText: Tool = {
     name: 'get_page_text',
     description: 'Get the visible text of the page, for reading articles and results.',
     inputSchema: { type: 'object', properties: { tabId, maxChars } },
-    async run(args) {
-        const tab = await resolveTab(args.tabId as number | undefined);
+    async run(args, context) {
+        const tab = await workTab(args.tabId as number | undefined, context);
         const page = await runInTab(tab, pageText, (args.maxChars as number | undefined) ?? 30_000);
         return text(`${header(page, tab.id)}\n\n${page.text}${page.truncated ? '\n\n[truncated]' : ''}`);
     },

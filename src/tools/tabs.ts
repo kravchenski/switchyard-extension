@@ -1,4 +1,5 @@
-import { addToSessionGroup, originOf, resolveTab, sessionGroupId, setCurrentTab, waitForLoad } from '../background/session.ts';
+import { markActive } from '../background/presence.ts';
+import { addToSessionGroup, originOf, resolveTab, sessionGroupId, setCurrentTab, waitForLoad, workTab } from '../background/session.ts';
 import { json, ToolError, type Tool } from './registry.ts';
 
 const tabId = { type: 'integer', description: 'Tab id from tabs_list. Defaults to the tab the agent is working in.' } as const;
@@ -56,14 +57,16 @@ export const tabCreate: Tool = {
             group: { type: 'boolean', description: 'Add it to the Switchyard group (default true).' },
         },
     },
-    async run(args) {
+    async run(args, context) {
         const url = typeof args.url === 'string' ? normalizeUrl(args.url) : undefined;
         const tab = await chrome.tabs.create({ url, active: args.active !== false });
         if (tab.id === undefined) throw new ToolError('Tab was not created');
         if (args.group !== false) await addToSessionGroup([tab.id]);
         await setCurrentTab(tab.id);
         if (url) await waitForLoad(tab.id);
-        return json(describeTab(await chrome.tabs.get(tab.id)));
+        const created = await chrome.tabs.get(tab.id);
+        await markActive(created as chrome.tabs.Tab & { id: number }, context.source);
+        return json(describeTab(created));
     },
 };
 
@@ -113,8 +116,8 @@ export const navigate: Tool = {
             action: { type: 'string', enum: ['back', 'forward', 'reload'], description: 'History action instead of a url.' },
         },
     },
-    async run(args) {
-        const tab = await resolveTab(args.tabId as number | undefined);
+    async run(args, context) {
+        const tab = await workTab(args.tabId as number | undefined, context);
         if (typeof args.url === 'string') {
             await chrome.tabs.update(tab.id, { url: normalizeUrl(args.url) });
         } else if (args.action === 'back') {
@@ -126,7 +129,6 @@ export const navigate: Tool = {
         } else {
             throw new ToolError('Pass url or action');
         }
-        await setCurrentTab(tab.id);
         await waitForLoad(tab.id);
         const loaded = await chrome.tabs.get(tab.id);
         return json({ ...describeTab(loaded), origin: originOf(loaded.url) });
