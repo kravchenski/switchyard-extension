@@ -1,0 +1,82 @@
+/* Switchyard desktop palette (desktop/src/ui.rs), shared by the side panel and settings. */
+
+@font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/PlusJakartaSans-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/PlusJakartaSans-Medium.ttf"); font-weight: 500; }
+@font-face { font-family: "Plus Jakarta Sans"; src: url("fonts/PlusJakartaSans-SemiBold.ttf"); font-weight: 600; }
+
+:root {
+    color-scheme: light dark;
+    --canvas: #eef0f3;
+    --surface: #ffffff;
+    --border: #e4e6ea;
+    --text: #14161a;
+    --muted: #717784;
+    --primary: #1f7a4d;
+    --primary-soft: #e6f2ec;
+    --hover: #e6e8ec;
+    --neutral-soft: #f1f2f4;
+    --switch-off: #d1d5db;
+    --success-text: #15803d;
+    --danger-text: #c81e1e;
+    --danger-soft: #fdeeee;
+    --on-primary: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --canvas: #0d0f12;
+        --surface: #171a1f;
+        --border: #272b32;
+        --text: #e8eaed;
+        --muted: #9aa1ac;
+        --primary: #34a873;
+        --primary-soft: #132b1f;
+        --hover: #1e2228;
+        --neutral-soft: #1e2228;
+        --switch-off: #3b414a;
+        --success-text: #4ade80;
+        --danger-text: #f87171;
+        --danger-soft: #2e1517;
+    }
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body { margin: 0; color: var(--text); font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: 0.45; cursor: default; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.hint { margin: 0; color: var(--muted); }
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 14px;
+    border: 1px solid var(--primary);
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--on-primary);
+    font-weight: 500;
+}
+.button:hover:not(:disabled) { opacity: 0.85; }
+.button.outline { border-color: var(--border); background: var(--surface); color: var(--text); }
+
+.chip {
+    padding: 1px 8px;
+    border-radius: 6px;
+    background: var(--neutral-soft);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.chip.ok { background: var(--primary-soft); color: var(--success-text); }
+.chip.error { background: var(--danger-soft); color: var(--danger-text); }
+
+code { padding: 1px 5px; border-radius: 6px; background: var(--neutral-soft); font: 12px/1.5 ui-monospace, monospace; word-break: break-all; }

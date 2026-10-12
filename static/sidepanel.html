@@ -4,44 +4,73 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Switchyard</title>
+    <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
-    <header>
+    <header class="topbar">
+        <img src="icons/icon-32.png" alt="" width="20" height="20">
         <h1>Switchyard</h1>
-        <select id="model" aria-label="Model" title="Model"></select>
-        <button id="new-chat" type="button" class="secondary">New chat</button>
-        <button id="open-options" type="button" class="secondary" aria-label="Settings" title="Settings">Settings</button>
+        <span id="bridge-status" class="chip" hidden></span>
+        <div class="spacer"></div>
+        <button id="new-chat" type="button" class="icon-button" aria-label="New chat" title="New chat">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        </button>
+        <button id="open-options" type="button" class="icon-button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        </button>
     </header>
-    <p id="bridge-status" class="bridge-status" hidden></p>
-    <main>
+
+    <main id="scroll">
+        <section id="tool-runner" class="tool-runner" hidden>
+            <div class="tool-runner-head">
+                <h2>Run a tool</h2>
+                <button id="close-tools" type="button" class="link">Close</button>
+            </div>
+            <select id="tool" aria-label="Tool"></select>
+            <p id="tool-description" class="hint"></p>
+            <textarea id="args" rows="4" spellcheck="false" aria-label="Arguments (JSON)">{}</textarea>
+            <button id="run" type="button" class="button">Run</button>
+            <div id="output" class="output" aria-live="polite"></div>
+        </section>
+
+        <section id="empty" class="empty">
+            <p>Switchyard works in its own tab group and asks before it clicks or types on a new site.</p>
+            <ul class="examples">
+                <li><button type="button" class="example">Group my open tabs by site</button></li>
+                <li><button type="button" class="example">Summarize this page in a few bullet points</button></li>
+                <li><button type="button" class="example">Close tabs that are open more than once</button></li>
+            </ul>
+        </section>
+
         <ol id="messages" class="messages" aria-live="polite"></ol>
-        <p id="empty" class="hint empty">Ask Switchyard to work with your tabs, e.g. "group my GitHub tabs into a blue group called Code".</p>
+    </main>
+
+    <footer class="footer">
         <section id="confirm" class="confirm" hidden>
             <p id="confirm-text"></p>
             <div class="actions">
-                <button id="confirm-allow" type="button">Allow</button>
-                <button id="confirm-deny" type="button" class="secondary">Deny</button>
+                <button id="confirm-deny" type="button" class="button outline">Deny</button>
+                <button id="confirm-allow" type="button" class="button">Allow</button>
             </div>
         </section>
-        <details class="tool-runner">
-            <summary>Run a tool manually</summary>
-            <label for="tool">Tool</label>
-            <select id="tool"></select>
-            <p id="tool-description" class="hint"></p>
-            <label for="args">Arguments (JSON)</label>
-            <textarea id="args" rows="4" spellcheck="false">{}</textarea>
-            <button id="run" type="button">Run</button>
-            <div id="output" class="output" aria-live="polite"></div>
-        </details>
-    </main>
-    <form id="composer" class="composer">
-        <textarea id="prompt" rows="3" placeholder="What should Switchyard do?" aria-label="Message"></textarea>
-        <div class="actions">
-            <button id="send" type="submit">Send</button>
-            <button id="stop" type="button" class="secondary" hidden>Stop</button>
-        </div>
-    </form>
+        <form id="composer" class="composer">
+            <textarea id="prompt" rows="1" placeholder="Ask Switchyard to do something" aria-label="Message"></textarea>
+            <div class="composer-bar">
+                <div class="picker">
+                    <button id="model-button" type="button" class="model-button" aria-haspopup="menu" aria-expanded="false" title="Model">
+                        <span id="model-label">agent</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div id="model-menu" class="menu" role="menu" hidden></div>
+                </div>
+                <button id="open-tools" type="button" class="link" title="Call a tool directly, without the model">Tools</button>
+                <div class="spacer"></div>
+                <button id="send" type="submit" class="button">Send</button>
+                <button id="stop" type="button" class="button outline" hidden>Stop</button>
+            </div>
+        </form>
+    </footer>
     <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

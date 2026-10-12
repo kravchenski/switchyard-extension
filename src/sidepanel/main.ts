@@ -6,8 +6,11 @@ import { loadSettings, saveSettings } from '../shared/settings.ts';
 const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector)!;
 
 const messages = $<HTMLOListElement>('#messages');
-const empty = $<HTMLParagraphElement>('#empty');
-const modelSelect = $<HTMLSelectElement>('#model');
+const scroller = $<HTMLElement>('#scroll');
+const empty = $<HTMLElement>('#empty');
+const modelButton = $<HTMLButtonElement>('#model-button');
+const modelLabel = $<HTMLSpanElement>('#model-label');
+const modelMenu = $<HTMLDivElement>('#model-menu');
 const composer = $<HTMLFormElement>('#composer');
 const prompt = $<HTMLTextAreaElement>('#prompt');
 const sendButton = $<HTMLButtonElement>('#send');
@@ -19,11 +22,17 @@ const toolDescription = $<HTMLParagraphElement>('#tool-description');
 const argsInput = $<HTMLTextAreaElement>('#args');
 const runButton = $<HTMLButtonElement>('#run');
 const output = $<HTMLDivElement>('#output');
-const bridgeStatus = $<HTMLParagraphElement>('#bridge-status');
+const toolRunner = $<HTMLElement>('#tool-runner');
+const bridgeStatus = $<HTMLSpanElement>('#bridge-status');
+
+const CHECK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
 let tools: ToolDefinition[] = [];
 let pendingConfirm: string | undefined;
 let lastAssistant: HTMLLIElement | undefined;
+let model = '';
+let models: string[] = [];
+let modelsError: string | undefined;
 const toolItems = new Map<string, HTMLDetailsElement>();
 let port = connect();
 
@@ -55,7 +64,6 @@ function onMessage(message: BackgroundToPanel) {
             pendingConfirm = message.id;
             confirmText.textContent = message.request.summary;
             confirmBox.hidden = false;
-            confirmBox.scrollIntoView({ block: 'nearest' });
             break;
         case 'transcript':
             messages.replaceChildren();
@@ -109,7 +117,13 @@ function render(event: AgentEvent) {
             const li = item('tool');
             const details = document.createElement('details');
             const summary = document.createElement('summary');
-            summary.textContent = `${event.source === 'bridge' ? 'MCP · ' : ''}${event.name} …`;
+            const name = document.createElement('span');
+            name.className = 'tool-name';
+            name.textContent = event.name;
+            const note = document.createElement('span');
+            note.className = 'tool-note';
+            note.textContent = event.source === 'bridge' ? 'from a coding agent · running' : 'running';
+            summary.append(name, note);
             const args = document.createElement('pre');
             args.textContent = event.args;
             details.append(summary, args);
@@ -121,8 +135,8 @@ function render(event: AgentEvent) {
             const details = toolItems.get(event.id);
             if (!details) break;
             details.classList.toggle('failed', event.isError);
-            const summary = details.querySelector('summary')!;
-            summary.textContent = summary.textContent!.replace(/ …$/, event.isError ? ' failed' : '');
+            const note = details.querySelector('.tool-note')!;
+            note.textContent = note.textContent!.replace('running', event.isError ? 'failed' : 'done');
             const result = document.createElement('pre');
             result.textContent = event.text;
             details.append(result, ...images(event.images));
@@ -132,7 +146,7 @@ function render(event: AgentEvent) {
             item('error', event.message);
             break;
     }
-    messages.lastElementChild?.scrollIntoView({ block: 'end' });
+    scroller.scrollTop = scroller.scrollHeight;
 }
 
 function setRunning(running: boolean) {
@@ -142,21 +156,73 @@ function setRunning(running: boolean) {
     if (!running) prompt.focus();
 }
 
-function showModels(models: string[], error?: string) {
-    const current = modelSelect.value || modelSelect.dataset.saved || '';
-    const ids = [...new Set([current, 'agent', 'auto', ...models].filter(Boolean))];
-    modelSelect.replaceChildren(...ids.map(id => new Option(id, id)));
-    modelSelect.value = current;
-    modelSelect.title = error ?? 'Model';
-    if (error) item('error', error);
+function showModels(next: string[], error?: string) {
+    models = next;
+    modelsError = error;
+    modelLabel.textContent = model;
+    modelButton.title = error ? `Model (${error})` : 'Model';
+    if (!modelMenu.hidden) renderModelMenu();
+}
+
+function menuItem(id: string) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'menu-item';
+    button.setAttribute('role', 'menuitemradio');
+    button.setAttribute('aria-checked', String(id === model));
+    const label = document.createElement('span');
+    label.textContent = id;
+    button.append(label);
+    button.insertAdjacentHTML('beforeend', CHECK_ICON);
+    button.addEventListener('click', () => {
+        model = id;
+        modelLabel.textContent = id;
+        saveSettings({ model: id });
+        closeModelMenu();
+    });
+    return button;
+}
+
+function menuLabel(text: string) {
+    const label = document.createElement('div');
+    label.className = 'menu-label';
+    label.textContent = text;
+    return label;
+}
+
+function renderModelMenu() {
+    const virtual = ['agent', 'auto', 'vision'];
+    const others = [...new Set([model, ...models])].filter(id => id && !virtual.includes(id));
+    modelMenu.replaceChildren(menuLabel('Switchyard routing'), ...virtual.map(menuItem));
+    if (others.length) modelMenu.append(menuLabel('Models'), ...others.map(menuItem));
+    if (modelsError) {
+        const error = document.createElement('div');
+        error.className = 'menu-error';
+        error.textContent = modelsError;
+        modelMenu.append(error);
+    }
+}
+
+function openModelMenu() {
+    renderModelMenu();
+    modelMenu.hidden = false;
+    modelButton.setAttribute('aria-expanded', 'true');
+    (modelMenu.querySelector<HTMLElement>('[aria-checked="true"]') ?? modelMenu.querySelector<HTMLElement>('.menu-item'))?.focus();
+    send({ type: 'list-models' });
+}
+
+function closeModelMenu() {
+    modelMenu.hidden = true;
+    modelButton.setAttribute('aria-expanded', 'false');
 }
 
 function showBridge(status: BridgeStatus) {
     bridgeStatus.hidden = !status.enabled;
-    bridgeStatus.classList.toggle('connected', status.connected);
-    bridgeStatus.textContent = status.connected
-        ? 'Coding agents connected through Switchyard (MCP)'
-        : `MCP bridge offline${status.error ? `: ${status.error}` : ''}; retrying`;
+    bridgeStatus.classList.toggle('ok', status.connected);
+    bridgeStatus.textContent = status.connected ? 'MCP connected' : 'MCP offline';
+    bridgeStatus.title = status.connected
+        ? 'Coding agents can use this browser through Switchyard'
+        : `${status.error ?? 'Switchyard is not reachable'}. Retrying.`;
 }
 
 function showToolDescription() {
@@ -183,8 +249,20 @@ composer.addEventListener('submit', (event) => {
     const text = prompt.value.trim();
     if (!text) return;
     prompt.value = '';
+    fitPrompt();
     send({ type: 'chat', text });
 });
+
+function fitPrompt() {
+    prompt.style.height = 'auto';
+    prompt.style.height = `${prompt.scrollHeight}px`;
+}
+
+prompt.addEventListener('input', fitPrompt);
+
+for (const example of document.querySelectorAll<HTMLButtonElement>('.example')) {
+    example.addEventListener('click', () => send({ type: 'chat', text: example.textContent! }));
+}
 
 prompt.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
@@ -198,7 +276,32 @@ $('#new-chat').addEventListener('click', () => send({ type: 'reset' }));
 $('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
 $('#confirm-allow').addEventListener('click', () => answerConfirm(true));
 $('#confirm-deny').addEventListener('click', () => answerConfirm(false));
-modelSelect.addEventListener('change', () => saveSettings({ model: modelSelect.value }));
+modelButton.addEventListener('click', () => (modelMenu.hidden ? openModelMenu() : closeModelMenu()));
+modelMenu.addEventListener('keydown', (event) => {
+    const items = [...modelMenu.querySelectorAll<HTMLElement>('.menu-item')];
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        items[(index + step + items.length) % items.length]?.focus();
+    }
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modelMenu.hidden) {
+        closeModelMenu();
+        modelButton.focus();
+    }
+});
+document.addEventListener('click', (event) => {
+    if (!modelMenu.hidden && !(event.target as Element).closest('.picker')) closeModelMenu();
+});
+$('#open-tools').addEventListener('click', () => {
+    toolRunner.hidden = !toolRunner.hidden;
+    if (!toolRunner.hidden) scroller.scrollTop = 0;
+});
+$('#close-tools').addEventListener('click', () => {
+    toolRunner.hidden = true;
+});
 toolSelect.addEventListener('change', showToolDescription);
 
 runButton.addEventListener('click', () => {
@@ -215,7 +318,7 @@ runButton.addEventListener('click', () => {
 });
 
 loadSettings().then((settings) => {
-    modelSelect.dataset.saved = settings.model;
+    model = settings.model;
     showModels([]);
     send({ type: 'list-models' });
 });
