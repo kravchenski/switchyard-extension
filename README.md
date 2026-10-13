@@ -32,6 +32,8 @@ The panel sends your message to Switchyard with a set of browser tools, runs the
 
 The same tools reach coding agents: the extension keeps a WebSocket to Switchyard, and Switchyard serves the tools over MCP.
 
+Opening or navigating a tab returns its page text and element refs in the same call. Clicking and pressing keys return updated controls; scrolling returns updated text and refs. Agents can use these results directly instead of making a separate read after each action. Set `readMode` to `all`, `interactive`, or `none` to choose what an action reads, and `maxChars` to limit the outline.
+
 While the agent works, its tab joins a green Switchyard tab group, and the page shows a frame, a status bar with Stop and the cursor moving to each click.
 
 ## Install
