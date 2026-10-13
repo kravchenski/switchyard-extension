@@ -31,7 +31,7 @@ export interface ChatChunk {
     choices?: {
         delta?: {
             content?: string | null;
-            tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[];
+            tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string } }[];
         };
         finish_reason?: string | null;
     }[];

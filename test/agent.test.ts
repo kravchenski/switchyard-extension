@@ -62,6 +62,26 @@ describe('ToolCallAccumulator', () => {
             { id: 'b', type: 'function', function: { name: 'shot', arguments: '{}' } },
         ]);
     });
+
+    test('groups by id when the provider omits index', () => {
+        const calls = new ToolCallAccumulator();
+        calls.push([{ id: 'x', function: { name: 'ech', arguments: '{"te' } }]);
+        calls.push([{ id: 'x', function: { name: 'o', arguments: 'xt":"v"}' } }]);
+        calls.push([{ id: 'y', function: { name: 'shot', arguments: '{}' } }]);
+        expect(calls.result()).toEqual([
+            { id: 'x', type: 'function', function: { name: 'echo', arguments: '{"text":"v"}' } },
+            { id: 'y', type: 'function', function: { name: 'shot', arguments: '{}' } },
+        ]);
+    });
+
+    test('does not duplicate a name sent whole more than once', () => {
+        const calls = new ToolCallAccumulator();
+        calls.push([{ index: 0, id: 'z', function: { name: 'echo', arguments: '{}' } }]);
+        calls.push([{ index: 0, function: { name: 'echo' } }]);
+        expect(calls.result()).toEqual([
+            { id: 'z', type: 'function', function: { name: 'echo', arguments: '{}' } },
+        ]);
+    });
 });
 
 describe('Agent', () => {

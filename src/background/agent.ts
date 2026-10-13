@@ -61,15 +61,25 @@ export function userContent(text: string, attachments: Attachment[] = []): strin
     return parts;
 }
 
-/** Accumulates streamed tool call fragments by index. */
+/** Accumulates streamed tool call fragments by index (or by id when the provider omits index). */
 export class ToolCallAccumulator {
     private readonly calls: { id: string; name: string; arguments: string }[] = [];
 
-    push(fragments: { index: number; id?: string; function?: { name?: string; arguments?: string } }[]) {
+    push(fragments: { index?: number; id?: string; function?: { name?: string; arguments?: string } }[]) {
         for (const fragment of fragments) {
-            const call = this.calls[fragment.index] ??= { id: '', name: '', arguments: '' };
+            // Some providers stream without index; fall back to the call id, then to order.
+            let index = fragment.index;
+            if (index === undefined && fragment.id) {
+                index = this.calls.findIndex(call => call.id === fragment.id);
+            }
+            if (index === undefined || index < 0) index = this.calls.length;
+            const call = this.calls[index] ??= { id: '', name: '', arguments: '' };
             if (fragment.id) call.id = fragment.id;
-            if (fragment.function?.name) call.name += fragment.function.name;
+            if (fragment.function?.name) {
+                // Pieces stream as "ech"+"cho"; some providers re-send the whole name, which we skip.
+                const name = fragment.function.name;
+                if (name !== call.name) call.name += name;
+            }
             if (fragment.function?.arguments) call.arguments += fragment.function.arguments;
         }
     }
