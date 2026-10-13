@@ -126,12 +126,26 @@ export class ToolRegistry {
         return [...this.tools.values()].map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
     }
 
+    /** Closest known tool names by shared prefix/substring, for "Unknown tool" errors. */
+    private similar(name: string) {
+        const lower = name.toLowerCase();
+        return [...this.tools.keys()]
+            .filter(tool => tool.includes(lower) || lower.includes(tool) || tool.split('_').some(part => lower.includes(part)))
+            .slice(0, 5);
+    }
+
     async call(name: string, args: unknown, context: ToolContext): Promise<ToolResult> {
         const tool = this.tools.get(name);
-        if (!tool) return errorResult(`Unknown tool ${name}`);
+        if (!tool) {
+            const hints = this.similar(name);
+            const list = this.definitions().map(definition => definition.name).join(', ');
+            return errorResult(hints.length
+                ? `Unknown tool ${name}. Did you mean: ${hints.join(', ')}? Available tools: ${list}`
+                : `Unknown tool ${name}. Available tools: ${list}`);
+        }
         const input = args ?? {};
         const errors = validate(tool.inputSchema, input);
-        if (errors.length) return errorResult(`Invalid arguments: ${errors.join('; ')}`);
+        if (errors.length) return errorResult(`Invalid arguments for ${name}: ${errors.join('; ')}. Schema: ${JSON.stringify(tool.inputSchema)}`);
         try {
             return await tool.run(input as Args, context);
         } catch (error) {
