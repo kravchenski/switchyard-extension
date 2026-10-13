@@ -1,6 +1,7 @@
 import { markActive } from '../background/presence.ts';
 import { addToSessionGroup, originOf, resolveTab, sessionGroupId, setCurrentTab, waitForLoad, workTab } from '../background/session.ts';
 import { json, ToolError, type Tool } from './registry.ts';
+import { observedResult, observationProperties } from './observation.ts';
 
 const tabId = { type: 'integer', description: 'Tab id from tabs_list. Defaults to the tab the agent is working in.' } as const;
 
@@ -48,13 +49,14 @@ export const tabsList: Tool = {
 
 export const tabCreate: Tool = {
     name: 'tab_create',
-    description: 'Open a new tab, add it to the Switchyard tab group and make it the current tab.',
+    description: 'Open a new tab, add it to the Switchyard tab group and make it the current tab. Returns page text and element refs by default; use these directly instead of calling read_page or get_page_text next. Set readMode=none if you only need to open the tab.',
     inputSchema: {
         type: 'object',
         properties: {
             url: { type: 'string', description: 'Address to open. Defaults to a blank tab.' },
             active: { type: 'boolean', description: 'Focus the new tab (default true).' },
             group: { type: 'boolean', description: 'Add it to the Switchyard group (default true).' },
+            ...observationProperties,
         },
     },
     async run(args, context) {
@@ -66,7 +68,7 @@ export const tabCreate: Tool = {
         if (url) await waitForLoad(tab.id);
         const created = await chrome.tabs.get(tab.id);
         await markActive(created as chrome.tabs.Tab & { id: number }, context.source);
-        return json(describeTab(created));
+        return observedResult(created as chrome.tabs.Tab & { id: number }, describeTab(created), args);
     },
 };
 
@@ -107,13 +109,14 @@ export const tabActivate: Tool = {
 
 export const navigate: Tool = {
     name: 'navigate',
-    description: 'Load a url in a tab, or go back, forward or reload. Waits for the page to finish loading.',
+    description: 'Load a url in a tab, or go back, forward or reload. Waits for loading and returns page text and fresh refs by default; reuse them without another read_page/get_page_text. Set readMode=none to skip reading.',
     inputSchema: {
         type: 'object',
         properties: {
             tabId,
             url: { type: 'string', description: 'Address to open.' },
             action: { type: 'string', enum: ['back', 'forward', 'reload'], description: 'History action instead of a url.' },
+            ...observationProperties,
         },
     },
     async run(args, context) {
@@ -131,7 +134,7 @@ export const navigate: Tool = {
         }
         await waitForLoad(tab.id);
         const loaded = await chrome.tabs.get(tab.id);
-        return json({ ...describeTab(loaded), origin: originOf(loaded.url) });
+        return observedResult(loaded as chrome.tabs.Tab & { id: number }, { ...describeTab(loaded), origin: originOf(loaded.url) }, args);
     },
 };
 

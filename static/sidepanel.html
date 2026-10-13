@@ -48,7 +48,10 @@
                         <span id="model-label">agent</span>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
-                    <div id="model-menu" class="menu" role="menu" hidden></div>
+                    <div id="model-menu" class="menu" hidden>
+                        <input id="model-search" class="menu-search" type="search" placeholder="Search models" aria-label="Search models" autocomplete="off" spellcheck="false">
+                        <div id="model-list" role="menu"></div>
+                    </div>
                 </div>
                 <button id="send" type="submit" class="round-button" aria-label="Send" title="Send">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>

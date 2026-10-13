@@ -32,6 +32,8 @@ The panel sends your message to Switchyard with a set of browser tools, runs the
 
 The same tools reach coding agents: the extension keeps a WebSocket to Switchyard, and Switchyard serves the tools over MCP.
 
+Opening or navigating a tab returns its page text and element refs in the same call. Clicking and pressing keys return updated controls; scrolling returns updated text and refs. Agents can use these results directly instead of making a separate read after each action. Set `readMode` to `all`, `interactive`, or `none` to choose what an action reads, and `maxChars` to limit the outline.
+
 While the agent works, its tab joins a green Switchyard tab group, and the page shows a frame, a status bar with Stop and the cursor moving to each click.
 
 ## Install
@@ -83,6 +85,10 @@ bun run setup:agents -- --browser-tools
 
 Calls from agents show up in the side panel chat marked as coming from a coding agent, and the page shows *"A coding agent is using this tab through Switchyard"*. `ask_user` is not offered over MCP; agents ask you in their own chat.
 
+`upload_file` accepts `filePath` for an existing file on the computer running Chrome, so a coding agent can upload a local PDF without a file dialog or sending its contents through the model. Use a ref for the file input or its upload button, for example `{"tabId": 123, "ref": "ref_21", "filePath": "/tmp/cv.pdf"}`. For attachments or files made by `create_file`, keep using `file` with the file name. Uploads return updated page text and refs; `readMode=none` skips this read.
+
+After rebuilding, reload the extension at `chrome://extensions` so it reconnects with its current tool list. Reconnect your MCP client if it still shows the old definitions.
+
 ## Tools
 
 | Group | Tool | What it does |
@@ -108,7 +114,7 @@ Calls from agents show up in the side panel chat marked as coming from a coding 
 | | `hover` | Move the mouse over a ref or point |
 | | `wait` | Wait a number of milliseconds |
 | Files | `create_file` | Make a file you can download and `upload_file` can use |
-| | `upload_file` | Put a file into a file input, upload button or drop zone |
+| | `upload_file` | Upload a local `filePath` or an attached `file` without a file dialog |
 | Chat | `ask_user` | Ask you a question with options (side panel only) |
 | | `use_skill` | Load a skill's instructions before a task it covers |
 

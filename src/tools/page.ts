@@ -12,12 +12,12 @@ function header(snapshot: { url: string; title: string }, tab: number) {
 
 export const readPage: Tool = {
     name: 'read_page',
-    description: 'Read the page as an accessibility-style outline. Each element gets a ref like ref_12 that click, type, scroll and hover accept. Mode "interactive" (default) lists only controls and landmarks; "all" also includes text.',
+    description: 'Read the page as an accessibility-style outline with refs like ref_12 for actions. Mode "interactive" (default) lists controls and landmarks; "all" includes text. Use only when the previous tool result does not already contain the page information you need; opening, navigating, clicking and scrolling return fresh outlines. Reuse refs from results and stale-ref errors.',
     inputSchema: {
         type: 'object',
         properties: {
             tabId,
-            mode: { type: 'string', enum: ['interactive', 'all'] },
+            mode: { type: 'string', enum: ['interactive', 'all'], description: 'interactive (default) lists controls; all also includes text.' },
             maxChars,
         },
     },
@@ -40,7 +40,7 @@ export const readPage: Tool = {
 
 export const find: Tool = {
     name: 'find',
-    description: 'Find visible elements whose label, text, placeholder, id or name contains the query. Returns refs to use with click and type.',
+    description: 'Find visible controls by label, text, placeholder, aria-label, id or name. Returns refs to use with click and type. Use this when you know the label you want and do not need a full page outline; use get_page_text for article body text.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -64,7 +64,7 @@ export const find: Tool = {
 
 export const getPageText: Tool = {
     name: 'get_page_text',
-    description: 'Get the visible text of the page, for reading articles and results.',
+    description: 'Get the visible text of the page, for reading articles and results. No element refs — use read_page or find when you need to click or type.',
     inputSchema: { type: 'object', properties: { tabId, maxChars } },
     async run(args, context) {
         const tab = await workTab(args.tabId as number | undefined, context);

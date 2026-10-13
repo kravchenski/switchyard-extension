@@ -3,6 +3,7 @@ import { PANEL_PORT, type BackgroundToPanel, type BridgeStatus, type PanelToBack
 import { formatSize, MAX_ATTACHMENT_BYTES, type Attachment } from '../shared/attachments.ts';
 import { loadSettings, saveSettings } from '../shared/settings.ts';
 import { renderMarkdown } from './markdown.ts';
+import { filterModels } from './model-filter.ts';
 
 const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector)!;
 
@@ -12,6 +13,8 @@ const empty = $<HTMLElement>('#empty');
 const modelButton = $<HTMLButtonElement>('#model-button');
 const modelLabel = $<HTMLSpanElement>('#model-label');
 const modelMenu = $<HTMLDivElement>('#model-menu');
+const modelSearch = $<HTMLInputElement>('#model-search');
+const modelList = $<HTMLDivElement>('#model-list');
 const composer = $<HTMLFormElement>('#composer');
 const prompt = $<HTMLTextAreaElement>('#prompt');
 const sendButton = $<HTMLButtonElement>('#send');
@@ -373,24 +376,32 @@ function menuLabel(text: string) {
     return label;
 }
 
+function menuNote(className: string, text: string) {
+    const note = document.createElement('div');
+    note.className = className;
+    note.textContent = text;
+    return note;
+}
+
 function renderModelMenu() {
-    const virtual = ['agent', 'auto', 'vision'];
-    const others = [...new Set([model, ...models])].filter(id => id && !virtual.includes(id));
-    modelMenu.replaceChildren(menuLabel('Switchyard routing'), ...virtual.map(menuItem));
-    if (others.length) modelMenu.append(menuLabel('Models'), ...others.map(menuItem));
-    if (modelsError) {
-        const error = document.createElement('div');
-        error.className = 'menu-error';
-        error.textContent = modelsError;
-        modelMenu.append(error);
-    }
+    const routing = ['agent', 'auto', 'vision'];
+    const query = modelSearch.value;
+    const virtual = filterModels(routing, query);
+    const others = filterModels([...new Set([model, ...models])].filter(id => id && !routing.includes(id)), query);
+    modelList.replaceChildren();
+    if (virtual.length) modelList.append(menuLabel('Switchyard routing'), ...virtual.map(menuItem));
+    if (others.length) modelList.append(menuLabel('Models'), ...others.map(menuItem));
+    if (!virtual.length && !others.length) modelList.append(menuNote('menu-empty', 'No models match'));
+    if (modelsError) modelList.append(menuNote('menu-error', modelsError));
 }
 
 function openModelMenu() {
+    modelSearch.value = '';
     renderModelMenu();
     modelMenu.hidden = false;
     modelButton.setAttribute('aria-expanded', 'true');
-    (modelMenu.querySelector<HTMLElement>('[aria-checked="true"]') ?? modelMenu.querySelector<HTMLElement>('.menu-item'))?.focus();
+    modelSearch.focus();
+    modelList.querySelector<HTMLElement>('[aria-checked="true"]')?.scrollIntoView({ block: 'nearest' });
     send({ type: 'list-models' });
 }
 
@@ -480,13 +491,18 @@ $('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPag
 $('#confirm-allow').addEventListener('click', () => answerConfirm(true));
 $('#confirm-deny').addEventListener('click', () => answerConfirm(false));
 modelButton.addEventListener('click', () => (modelMenu.hidden ? openModelMenu() : closeModelMenu()));
+modelSearch.addEventListener('input', renderModelMenu);
 modelMenu.addEventListener('keydown', (event) => {
-    const items = [...modelMenu.querySelectorAll<HTMLElement>('.menu-item')];
+    const items = [...modelList.querySelectorAll<HTMLElement>('.menu-item')];
     const index = items.indexOf(document.activeElement as HTMLElement);
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (event.key === 'Enter' && event.target === modelSearch) {
         event.preventDefault();
-        const step = event.key === 'ArrowDown' ? 1 : -1;
-        items[(index + step + items.length) % items.length]?.focus();
+        items[0]?.click();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const next = index + (event.key === 'ArrowDown' ? 1 : -1);
+        if (next < 0 || next >= items.length) modelSearch.focus();
+        else items[next]!.focus();
     }
 });
 document.addEventListener('keydown', (event) => {

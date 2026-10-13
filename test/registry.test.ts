@@ -49,7 +49,17 @@ describe('ToolRegistry', () => {
 
     test('returns an error result instead of throwing', async () => {
         expect((await registry.call('echo', {}, context)).isError).toBe(true);
-        expect((await registry.call('missing', {}, context)).content[0]).toEqual({ type: 'text', text: 'Unknown tool missing' });
+        const missing = await registry.call('missing', {}, context);
+        expect(missing.isError).toBe(true);
+        expect(missing.content[0]).toEqual({ type: 'text', text: 'Unknown tool missing. Available tools: echo' });
+    });
+
+    test('suggests similar tools for a near-miss name', async () => {
+        const many = new ToolRegistry().register(echo, { ...echo, name: 'read_page', run: async () => ({ content: [] }) });
+        const result = await many.call('readpage', {}, context);
+        expect(result.isError).toBe(true);
+        expect(result.content[0]).toMatchObject({ type: 'text' });
+        expect((result.content[0] as { text: string }).text).toContain('Did you mean: read_page');
     });
 
     test('turns thrown errors into error results', async () => {
