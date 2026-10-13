@@ -52,6 +52,29 @@ export async function snapshotPage(options: SnapshotOptions): Promise<Snapshot> 
 
     const state = window as unknown as { __syRefCounter?: number };
     state.__syRefCounter ??= 0;
+    // A reloaded extension gets a new isolated world while old refs remain in the DOM.
+    // Recover the counter and repair duplicates before assigning any new refs.
+    const existingRefs: Element[] = [];
+    const collectRefs = (root: Document | ShadowRoot) => {
+        for (const element of root.querySelectorAll(`[${REF_ATTRIBUTE}]`)) {
+            existingRefs.push(element);
+            const match = /^ref_(\d+)$/.exec(element.getAttribute(REF_ATTRIBUTE)!);
+            if (match) state.__syRefCounter = Math.max(state.__syRefCounter!, Number(match[1]));
+        }
+        for (const element of root.querySelectorAll('*')) {
+            if (element.shadowRoot) collectRefs(element.shadowRoot);
+        }
+    };
+    collectRefs(document);
+    const occupiedRefs = new Set<string>();
+    for (const element of existingRefs) {
+        let ref = element.getAttribute(REF_ATTRIBUTE)!;
+        if (occupiedRefs.has(ref)) {
+            ref = `ref_${++state.__syRefCounter!}`;
+            element.setAttribute(REF_ATTRIBUTE, ref);
+        }
+        occupiedRefs.add(ref);
+    }
 
     const clean = (value: string | null | undefined, max = 100) => {
         const text = (value ?? '').replace(/\s+/g, ' ').trim();
