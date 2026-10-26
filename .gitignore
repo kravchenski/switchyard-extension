@@ -114,3 +114,4 @@ dist
 
 # Extension signing key
 *.pem
+dist-headless

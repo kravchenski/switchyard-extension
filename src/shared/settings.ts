@@ -10,6 +10,9 @@ export interface Settings {
     bridgeAutoApprove: boolean;
 }
 
+/** Filled in by `bun run build --headless`: a build for a server, where nobody can click an approval. */
+declare const BUILD_DEFAULTS: Partial<Settings> | null | undefined;
+
 export const DEFAULT_SETTINGS: Settings = {
     gatewayUrl: 'http://127.0.0.1:3260',
     apiKey: '',
@@ -17,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
     askBeforeActing: true,
     bridgeEnabled: true,
     bridgeAutoApprove: false,
+    ...(typeof BUILD_DEFAULTS === 'undefined' ? {} : BUILD_DEFAULTS ?? {}),
 };
 
 export async function loadSettings(): Promise<Settings> {

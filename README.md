@@ -126,6 +126,18 @@ After rebuilding, reload the extension at `chrome://extensions` so it reconnects
 - Attached and created files stay in the extension's memory for the conversation (created files up to 2 MB). Nothing is written to disk unless you click Download.
 - Because input uses `chrome.debugger`, Chrome shows its "started debugging this browser" bar while the agent works. The debugger detaches after 30 seconds without input.
 
+## On a server (headless)
+
+On a server there is nobody to click an approval, so a headless build starts with both prompts off: the agent acts on any site without asking, and the gateway address and key are built in.
+
+```sh
+SWITCHYARD_GATEWAY_URL=http://127.0.0.1:3260 SWITCHYARD_API_KEY=... bun run build --headless   # writes dist-headless/
+chromium --headless=new --user-data-dir=/srv/switchyard-profile \
+  --disable-extensions-except=dist-headless --load-extension=dist-headless about:blank
+```
+
+The result carries the key (if any), so it stays on the server and is never published or committed. Use it in a browser profile that holds nothing but what the agents need: with the prompts off, a page that talks a model into clicking has nothing between it and the sessions in that profile. The normal build keeps both prompts on. Only one browser at a time is the gateway's browser: a second connection replaces the first.
+
 ## Development
 
 ```sh
